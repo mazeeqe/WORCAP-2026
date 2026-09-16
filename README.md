@@ -58,8 +58,10 @@ Código para baixar e carregar os dados da competição Kaggle
 - `src/models/pca_lstm.py` — arquitetura do Modelo A: `SpatialPCA` (redução
   espacial da grade via PCA) e `HindcastForecastLSTM` (encoder LSTM + decoder
   condicionado no mês alvo, na última observação real e no lag).
-- `src/models/convlstm.py` — esqueleto do **Modelo B** (ConvLSTM), ainda por
-  implementar.
+- `src/models/convlstm.py` — arquitetura funcional do **Modelo B** com células
+  ConvLSTM empilhadas, condicionamento nas variáveis de `M` e no horizonte,
+  preservação espacial e saída de precipitação não negativa. O treinamento
+  completo continua condicionado ao dataset oficial.
 
 ### Configuração e resultados (gerados, não totalmente versionados)
 
