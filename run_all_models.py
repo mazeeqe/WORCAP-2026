@@ -34,7 +34,7 @@ import sys
 import time
 from pathlib import Path
 
-from src.models.pca_lstm.train import PLS_LAG_SHIFT, REDUCTION_METHODS, RUN_DIRS
+from src.models.pca_lstm.train import N_JOBS_REDUCTION, PLS_LAG_SHIFT, REDUCTION_METHODS, RUN_DIRS
 
 # Registro dos modelos disponiveis: cada um roda como `python3 -m <module> --reduction <variacao> ...`.
 # `variations` sao os valores aceitos por --reduction daquele modelo; `run_dirs` mapeia
@@ -77,11 +77,24 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Para a fila assim que uma variacao falhar, em vez de continuar com as demais.",
     )
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=N_JOBS_REDUCTION,
+        help="Repassado para --n-jobs em cada treino (paralelismo do ajuste PCA/PLS por variavel, "
+        "padrao: %(default)s = todos os nucleos). Reduza se a maquina tiver pouca RAM - cada "
+        "worker mantem sua propria copia da grade normalizada (ver fit_reduction_per_variable).",
+    )
     return parser.parse_args()
 
 
-def run_one(model: str, module: str, variation: str, run_dir: str, pls_lag_shift: int) -> dict:
-    cmd = [sys.executable, "-m", module, "--reduction", variation, "--pls-lag-shift", str(pls_lag_shift)]
+def run_one(model: str, module: str, variation: str, run_dir: str, pls_lag_shift: int, n_jobs: int) -> dict:
+    cmd = [
+        sys.executable, "-m", module,
+        "--reduction", variation,
+        "--pls-lag-shift", str(pls_lag_shift),
+        "--n-jobs", str(n_jobs),
+    ]
     print(f"\n{'#' * 70}\n# Iniciando '{model}/{variation}': {' '.join(cmd)}\n{'#' * 70}\n")
 
     t0 = time.time()
@@ -123,7 +136,7 @@ def main():
             fila.append((model, runner["module"], variation, runner["run_dirs"][variation]))
 
     for model, module, variation, run_dir in fila:
-        resumo = run_one(model, module, variation, run_dir, args.pls_lag_shift)
+        resumo = run_one(model, module, variation, run_dir, args.pls_lag_shift, args.n_jobs)
         resumos.append(resumo)
         if resumo["status"] == "falhou" and args.stop_on_error:
             print(f"\nParando a fila: '{model}/{variation}' falhou e --stop-on-error foi passado.")
