@@ -16,8 +16,8 @@ Código aberto sob GPL-3.0. Consulte [como contribuir](CONTRIBUTING.md), [govern
 Membros da equipe:
 
 - Tomáz Antonio Bortoletto Giansante
--
--
+- Beatriz Karoline Cordeiro da Silva
+- Daiane Fonseca
 -
 
 Código para baixar e carregar os dados da competição Kaggle
