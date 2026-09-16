@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilidade ou credencial exposta
+    url: https://github.com/mazeeqe/WORCAP-2026/security/advisories/new
+    about: Envie detalhes sensíveis de forma privada.

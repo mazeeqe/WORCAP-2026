@@ -1,0 +1,22 @@
+name: Bug científico ou técnico
+description: Relate um erro reproduzível em dados, modelo ou avaliação
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Como reproduzir
+      description: Inclua comando, período, variáveis e semente sem credenciais.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências e impacto científico

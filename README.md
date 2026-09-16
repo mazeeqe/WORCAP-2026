@@ -1,6 +1,12 @@
 # WORCAP 2026 — Previsão Climática de Precipitação sobre a América do Sul
 
+[![CI](https://github.com/mazeeqe/WORCAP-2026/actions/workflows/ci.yml/badge.svg?branch=Beatriz)](https://github.com/mazeeqe/WORCAP-2026/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-0b7a75.svg)](LICENSE)
+[![Reproducible](https://img.shields.io/badge/science-reproducible-6ba539.svg)](CONTRIBUTING.md)
+
 Repositório para o Hackathon WORCAP 2026
+
+Código aberto sob GPL-3.0. Consulte [como contribuir](CONTRIBUTING.md), [governança científica](GOVERNANCE.md), [segurança](SECURITY.md), [citação](CITATION.cff) e [histórico](CHANGELOG.md).
 
 > **Estado auditado em 16/09/2026:** o alinhamento temporal do treino foi corrigido
 > para usar a atmosfera do mês anterior ao alvo (`M → M+1`). Os artefatos existentes

@@ -1,0 +1,27 @@
+name: Proposta de experimento
+description: Proponha um modelo, variável ou protocolo de avaliação
+title: "experiment: "
+labels: [experiment]
+body:
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hipótese
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Protocolo e baselines
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Dados, licença e risco de vazamento
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: Custo computacional estimado

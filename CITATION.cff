@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "Se este código apoiar seu trabalho, cite este repositório e as fontes de dados utilizadas."
+title: "WORCAP 2026: previsão climática de precipitação sobre a América do Sul"
+type: software
+authors:
+  - name: "WORCAP 2026 Climazoide contributors"
+version: 0.2.0
+date-released: 2026-09-16
+license: GPL-3.0-only
+repository-code: "https://github.com/mazeeqe/WORCAP-2026"
+url: "https://github.com/mazeeqe/WORCAP-2026"
+keywords:
+  - precipitation
+  - climate
+  - ERA5
+  - South America
+  - LSTM
+  - ConvLSTM
