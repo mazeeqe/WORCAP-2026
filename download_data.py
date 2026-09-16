@@ -13,20 +13,59 @@ Pré-requisitos:
 """
 
 import os
+from pathlib import Path
 
 import pandas as pd
 import xarray as xr
 
 COMPETITION = "previsao-climatica-de-precipitacao-sobre-a-america-do-sul"
+EXPECTED_FILES = {
+    "sample_submission.csv", "teste_features.nc", "treino_cloud_cover.nc",
+    "treino_geopotential_850.nc", "treino_rel_hum_850.nc", "treino_shum_850.nc",
+    "treino_surface_pressure.nc", "treino_t2.nc", "treino_temperature_850.nc",
+    "treino_tp.nc", "treino_tp_alvo.nc", "treino_u_850.nc", "treino_v_850.nc",
+}
+
+
+def _validate_competition_path(path: Path) -> Path:
+    found = {item.name for item in path.iterdir() if item.is_file()}
+    missing = EXPECTED_FILES - found
+    if missing:
+        raise FileNotFoundError(
+            f"Diretório incompleto ({path}). Ausentes: {', '.join(sorted(missing))}"
+        )
+    return path
+
+
+def resolve_competition_path() -> Path | None:
+    """Localiza dados anexados ao Kaggle ou indicados por WORCAP_DATA_DIR."""
+    configured = os.getenv("WORCAP_DATA_DIR")
+    if configured:
+        return _validate_competition_path(Path(configured).expanduser().resolve())
+
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        matches = list(kaggle_input.rglob("sample_submission.csv"))
+        for sample in matches:
+            try:
+                return _validate_competition_path(sample.parent)
+            except FileNotFoundError:
+                continue
+    return None
 
 
 def download_competition_data(competition: str = COMPETITION) -> str:
     """Baixa (ou reaproveita o cache local) os arquivos da competição e retorna o path."""
+    attached = resolve_competition_path()
+    if attached:
+        print(f"Dados oficiais anexados encontrados em: {attached}")
+        return str(attached)
+
     import kagglehub
 
-    path = kagglehub.competition_download(competition)
+    path = _validate_competition_path(Path(kagglehub.competition_download(competition)))
     print(f"Path to competition files: {path}")
-    return path
+    return str(path)
 
 
 def load_dataset_files(path: str) -> tuple[dict[str, pd.DataFrame], dict[str, xr.Dataset]]:

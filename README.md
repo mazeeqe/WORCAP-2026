@@ -125,6 +125,23 @@ O script:
 Os dados não ficam no repositório (são grandes e cada pessoa baixa a própria cópia
 com o token individual do Kaggle).
 
+#### Executar dentro de um Kaggle Notebook
+
+Ao anexar a competição em **Add Input**, o pipeline detecta automaticamente os
+13 arquivos em `/kaggle/input`, sem exigir token dentro do notebook:
+
+```bash
+!git clone --branch Beatriz https://github.com/mazeeqe/WORCAP-2026.git
+%cd WORCAP-2026
+!pip install -q -r requirements.txt
+!python kaggle_notebook.py
+```
+
+Use uma sessão com GPU. Ao finalizar, `/kaggle/working` terá
+`submission_pca_lstm.csv` e `submission_manifest.json`, contendo contagem de
+linhas, hash SHA-256, contrato temporal e proveniência. Baixe os dois arquivos
+ou salve uma versão do notebook para preservar a saída.
+
 ### 2. Análise exploratória (estatísticas)
 
 ```bash
