@@ -6,4 +6,6 @@ matplotlib
 jupyterlab
 torch
 scikit-learn
+xgboost
+joblib
 pyyaml
