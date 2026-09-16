@@ -2,6 +2,11 @@
 
 Repositório para o Hackathon WORCAP 2026
 
+> **Estado auditado em 16/09/2026:** o alinhamento temporal do treino foi corrigido
+> para usar a atmosfera do mês anterior ao alvo (`M → M+1`). Os artefatos existentes
+> em `experiments/pca_lstm_run1/` pertencem à execução anterior e não devem ser
+> apresentados como validação atual. É necessário retreinar antes da submissão.
+
 Membros da equipe:
 
 - Tomáz Antonio Bortoletto Giansante
@@ -44,8 +49,8 @@ Código para baixar e carregar os dados da competição Kaggle
   observação real) e climatologia (média histórica por mês do calendário).
 - `src/evaluate.py` — métricas de avaliação (RMSE/MAE, com quebra por horizonte
   de previsão).
-- `src/submit.py` — formata a previsão final no formato exigido pelo Kaggle
-  (arquivos em `submissions/`).
+- `src/submit.py` — copia os IDs oficiais de `sample_submission.csv` e preenche a
+  previsão final sem reconstruir identificadores (arquivos em `submissions/`).
 - `src/train_pca_lstm.py` — script principal do **Modelo A**: ajusta PCA por
   variável, treina o LSTM hindcast/forecast com validação interna (early
   stopping), compara com os baselines, retreina com todo o histórico rotulado
@@ -147,3 +152,12 @@ cache de `eda_output/` quando disponível) e plota:
 - séries temporais anuais (precipitação, temperatura, cobertura de nuvens);
 - histograma da distribuição de `tp_alvo`;
 - mapas espaciais (média no tempo) de `tp_alvo` e `t2` sobre a América do Sul.
+
+### 4. Verificar o contrato temporal e a submissão
+
+```bash
+pytest -q
+```
+
+Os testes garantem que as variáveis atmosféricas vêm de `M`, o alvo vem de
+`M+1` e os IDs oficiais são copiados sem reconstrução.

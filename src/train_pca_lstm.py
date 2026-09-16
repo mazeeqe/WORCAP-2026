@@ -57,6 +57,16 @@ MAX_EPOCHS = 25
 PATIENCE = 5
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RUN_DIR = "experiments/pca_lstm_run1"
+SEED = 42
+
+
+def set_reproducible_seed() -> None:
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def fit_pca_per_variable(ds: xr.Dataset, stats: dict, train_end_idx: int) -> tuple[dict, dict]:
@@ -173,6 +183,7 @@ def reconstruct_tp(pca_tp: SpatialPCA, stats_tp: tuple[float, float], coeffs_nor
 
 
 def main():
+    set_reproducible_seed()
     print("=== 1. Carregando dados ===")
     datasets = load_all_datasets()
     ds = stack_features(datasets)
@@ -309,6 +320,8 @@ def main():
     tp_congelado_teste = component_series[TP_VAR][origem_idx]
 
     n_meses_teste = teste_ds.sizes["time"]
+    # Cada linha do teste ja esta posicionada no mes-alvo, mas contem as
+    # variaveis atmosfericas do mes anterior, conforme `time_origem`.
     atm_teste_list = []
     for var in FEATURE_VARS:
         media, desvio = stats[var]

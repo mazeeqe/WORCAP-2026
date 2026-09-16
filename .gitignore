@@ -22,6 +22,7 @@ experiments/**/*.joblib
 __pycache__/
 *.pyc
 .venv/
+.testdeps/
 venv/
 env/
 *.egg-info/

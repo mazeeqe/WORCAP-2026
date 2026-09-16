@@ -14,7 +14,6 @@ Pré-requisitos:
 
 import os
 
-import kagglehub
 import pandas as pd
 import xarray as xr
 
@@ -23,6 +22,8 @@ COMPETITION = "previsao-climatica-de-precipitacao-sobre-a-america-do-sul"
 
 def download_competition_data(competition: str = COMPETITION) -> str:
     """Baixa (ou reaproveita o cache local) os arquivos da competição e retorna o path."""
+    import kagglehub
+
     path = kagglehub.competition_download(competition)
     print(f"Path to competition files: {path}")
     return path
