@@ -124,6 +124,89 @@ def outliers_by_year(ds: xr.Dataset, var: str, z_limite: float = Z_LIMITE_OUTLIE
     return df
 
 
+def outliers_by_year_all_variables(datasets: dict[str, xr.Dataset], treino_names: list[str],
+                                    z_limite: float = Z_LIMITE_OUTLIER) -> dict[str, pd.DataFrame]:
+    """Roda outliers_by_year pra cada variavel de treino, retorna {variavel: df_por_ano}."""
+    resultado = {}
+    for name in treino_names:
+        ds = datasets[name]
+        for var in ds.data_vars:
+            if "time" not in ds[var].dims:
+                continue
+            resultado[var] = outliers_by_year(ds, var, z_limite=z_limite)
+    return resultado
+
+
+def outliers_by_year_summary(por_variavel: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Uma linha por variavel: media/limiar globais, total de outliers e em qual ano
+    houve mais/menos -- pra comparar variaveis sem precisar abrir cada CSV por ano."""
+    rows = []
+    for var, df in por_variavel.items():
+        total_outliers = int(df["n_outliers"].sum())
+        total_pontos = int(df["n_pontos"].sum())
+        rows.append({
+            "variavel": var,
+            "media_global": df.attrs["media_global"], "desvio_global": df.attrs["desvio_global"],
+            "limiar": df.attrs["limiar"], "total_outliers": total_outliers,
+            "pct_outliers": 100 * total_outliers / total_pontos if total_pontos else 0.0,
+            "ano_mais_outliers": int(df["n_outliers"].idxmax()),
+            "ano_menos_outliers": int(df["n_outliers"].idxmin()),
+        })
+    return pd.DataFrame(rows).sort_values("pct_outliers", ascending=False).reset_index(drop=True)
+
+
+def plot_variable_outliers_by_year(df_ano: pd.DataFrame, variavel: str, caminho_saida: str) -> None:
+    """Grafico de linha (media anual) + barra (% outliers anual) pra 1 variavel.
+    Import de matplotlib fica local pra nao forcar essa dependencia em quem so quer
+    rodar as estatisticas (main()) sem plotar."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax1 = plt.subplots(figsize=(9, 4), dpi=130)
+    ax1.plot(df_ano.index, df_ano["media"], color="#1a3a5c", linewidth=1.6, label=f"Média de {variavel}")
+    ax1.set_xlabel("Ano")
+    ax1.set_ylabel(f"Média de {variavel}", color="#1a3a5c")
+    ax1.tick_params(axis="y", labelcolor="#1a3a5c")
+
+    ax2 = ax1.twinx()
+    ax2.bar(df_ano.index, df_ano["pct_outliers"], color="#c62828", alpha=0.35, width=0.8,
+            label="% de pontos outlier")
+    ax2.set_ylabel("% de pontos outlier", color="#c62828")
+    ax2.tick_params(axis="y", labelcolor="#c62828")
+
+    tendencia = df_ano["pct_outliers"].rolling(5, center=True).mean()
+    ax2.plot(df_ano.index, tendencia, color="#c62828", linewidth=1.8, linestyle="--",
+             label="Tendência (média móvel 5 anos)")
+
+    fig.suptitle(f"{variavel} por ano — média e % de outliers", fontsize=11, fontweight="bold")
+    l1, la1 = ax1.get_legend_handles_labels()
+    l2, la2 = ax2.get_legend_handles_labels()
+    ax1.legend(l1 + l2, la1 + la2, loc="upper left", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(caminho_saida)
+    plt.close(fig)
+
+
+def plot_outlier_pct_by_variable(df_resumo: pd.DataFrame, caminho_saida: str) -> None:
+    """Barra horizontal comparando % de outliers entre todas as variaveis."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    ordenado = df_resumo.sort_values("pct_outliers", ascending=True)
+    fig, ax = plt.subplots(figsize=(8, 4), dpi=130)
+    cores = ["#c62828" if v > 0 else "#888888" for v in ordenado["pct_outliers"]]
+    ax.barh(ordenado["variavel"], ordenado["pct_outliers"], color=cores)
+    for i, pct in enumerate(ordenado["pct_outliers"]):
+        ax.text(pct + 0.03, i, f"{pct:.2f}%", va="center", fontsize=8)
+    ax.set_xlabel("% de pontos outlier (dataset inteiro)")
+    ax.set_title("Outliers por variável", fontsize=10, fontweight="bold")
+    fig.tight_layout()
+    fig.savefig(caminho_saida)
+    plt.close(fig)
+
+
 def descriptive_stats_sample(datasets: dict[str, xr.Dataset], names: list[str],
                               n_amostra: int = N_AMOSTRA, seed: int = SEED) -> pd.DataFrame:
     """Media, mediana, moda, desvio, assimetria e curtose por variavel, calculados sobre
@@ -195,12 +278,25 @@ def main() -> None:
     print(outliers.to_string(index=False))
     outliers.to_csv(os.path.join(OUTPUT_DIR, "outliers_resumo.csv"), index=False)
 
-    if "treino_tp" in datasets:
-        tp_por_ano = outliers_by_year(datasets["treino_tp"], "tp")
-        print(f"\n=== tp: média e outliers por ano (z > {Z_LIMITE_OUTLIER}, "
-              f"limiar={tp_por_ano.attrs['limiar']:.4f} mm/dia) ===")
-        print(tp_por_ano.to_string())
-        tp_por_ano.to_csv(os.path.join(OUTPUT_DIR, "tp_outliers_por_ano.csv"))
+    if treino_names:
+        por_variavel = outliers_by_year_all_variables(datasets, treino_names)
+        for var, df_ano in por_variavel.items():
+            df_ano.to_csv(os.path.join(OUTPUT_DIR, f"outliers_por_ano_{var}.csv"))
+
+        resumo_ano = outliers_by_year_summary(por_variavel)
+        print(f"\n=== Outliers por ano — resumo por variável (z > {Z_LIMITE_OUTLIER}) ===")
+        print(resumo_ano.to_string(index=False))
+        resumo_ano.to_csv(os.path.join(OUTPUT_DIR, "outliers_por_ano_resumo.csv"), index=False)
+
+        if "tp" in por_variavel:
+            print(f"\n=== tp: média e outliers por ano (tabela completa) ===")
+            print(por_variavel["tp"].to_string())
+            plot_variable_outliers_by_year(
+                por_variavel["tp"], "tp", os.path.join(OUTPUT_DIR, "grafico_tp_por_ano.png"))
+            plot_outlier_pct_by_variable(
+                resumo_ano, os.path.join(OUTPUT_DIR, "grafico_outliers_por_variavel.png"))
+            print(f"Gráficos salvos em '{OUTPUT_DIR}/grafico_tp_por_ano.png' e "
+                  f"'{OUTPUT_DIR}/grafico_outliers_por_variavel.png'.")
 
     if treino_names:
         descritiva = descriptive_stats_sample(datasets, treino_names)
