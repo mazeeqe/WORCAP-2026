@@ -142,6 +142,24 @@ Use uma sessão com GPU. Ao finalizar, `/kaggle/working` terá
 linhas, hash SHA-256, contrato temporal e proveniência. Baixe os dois arquivos
 ou salve uma versão do notebook para preservar a saída.
 
+#### Publicação opcional no Google Cloud
+
+BigQuery e Cloud Storage podem preservar a proveniência e os artefatos, mas não
+são necessários para treinar. Configure uma conta de serviço pelo mecanismo de
+Secrets do Kaggle e nunca coloque o JSON de credenciais no notebook ou GitHub.
+
+```bash
+!pip install -q -r requirements-gcp.txt
+!python kaggle_notebook.py \
+  --gcp-project SEU_PROJETO \
+  --gcs-bucket SEU_BUCKET \
+  --bigquery-table SEU_PROJETO.dataset.submission_runs
+```
+
+Cloud AutoML, Translation, Natural Language, Video Intelligence e Vision não
+fazem parte do fluxo: não melhoram diretamente o contrato de previsão M→M+1 e
+introduziriam custo e credenciais sem evidência de benefício preditivo.
+
 ### 2. Análise exploratória (estatísticas)
 
 ```bash

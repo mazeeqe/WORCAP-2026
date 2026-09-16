@@ -28,9 +28,43 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def publish_to_gcp(
+    project: str,
+    bucket_name: str,
+    table: str | None,
+    submission_path: Path,
+    manifest_path: Path,
+    manifest: dict,
+) -> None:
+    """Publica artefatos no GCS e, opcionalmente, proveniência no BigQuery."""
+    try:
+        from google.cloud import bigquery, storage
+    except ImportError as exc:
+        raise SystemExit(
+            "Para publicar no GCP, instale: pip install -r requirements-gcp.txt"
+        ) from exc
+
+    storage_client = storage.Client(project=project)
+    bucket = storage_client.bucket(bucket_name)
+    prefix = f"worcap/{manifest['sha256'][:12]}"
+    bucket.blob(f"{prefix}/{submission_path.name}").upload_from_filename(submission_path)
+    bucket.blob(f"{prefix}/{manifest_path.name}").upload_from_filename(manifest_path)
+    print(f"Artefatos publicados em gs://{bucket_name}/{prefix}/")
+
+    if table:
+        bigquery_client = bigquery.Client(project=project)
+        errors = bigquery_client.insert_rows_json(table, [manifest])
+        if errors:
+            raise RuntimeError(f"Falha ao registrar manifesto no BigQuery: {errors}")
+        print(f"Proveniência registrada em {table}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("/kaggle/working"))
+    parser.add_argument("--gcp-project")
+    parser.add_argument("--gcs-bucket")
+    parser.add_argument("--bigquery-table")
     args = parser.parse_args()
 
     data_path = Path(download_competition_data())
@@ -68,6 +102,18 @@ def main() -> None:
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"Submissão pronta: {target}")
     print(f"Manifesto: {manifest_path}")
+
+    if bool(args.gcp_project) != bool(args.gcs_bucket):
+        raise SystemExit("Use --gcp-project e --gcs-bucket juntos.")
+    if args.gcp_project and args.gcs_bucket:
+        publish_to_gcp(
+            args.gcp_project,
+            args.gcs_bucket,
+            args.bigquery_table,
+            target,
+            manifest_path,
+            manifest,
+        )
 
 
 if __name__ == "__main__":
