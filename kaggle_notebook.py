@@ -38,6 +38,17 @@ def publish_to_gcp(
 ) -> None:
     """Publica artefatos no GCS e, opcionalmente, proveniência no BigQuery."""
     try:
+        from kaggle_secrets import UserSecretsClient
+
+        user_secrets = UserSecretsClient()
+        credential = user_secrets.get_gcloud_credential()
+        user_secrets.set_tensorflow_credential(credential)
+        print("Credencial Google Cloud vinculada pelo Kaggle Secrets.")
+    except ImportError:
+        # Fora do Kaggle, google-cloud usa Application Default Credentials.
+        pass
+
+    try:
         from google.cloud import bigquery, storage
     except ImportError as exc:
         raise SystemExit(

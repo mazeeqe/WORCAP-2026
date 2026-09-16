@@ -147,6 +147,10 @@ ou salve uma versão do notebook para preservar a saída.
 BigQuery e Cloud Storage podem preservar a proveniência e os artefatos, mas não
 são necessários para treinar. Configure uma conta de serviço pelo mecanismo de
 Secrets do Kaggle e nunca coloque o JSON de credenciais no notebook ou GitHub.
+Depois de selecionar **Link account** e concluir a autorização, o executor usa
+`UserSecretsClient.get_gcloud_credential()` e
+`set_tensorflow_credential()` para criar as credenciais de aplicação apenas na
+sessão. O valor da credencial não é impresso nem salvo como output.
 
 ```bash
 !pip install -q -r requirements-gcp.txt
