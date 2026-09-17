@@ -10,6 +10,12 @@ Uso (a partir da raiz do repositorio):
     python3 -m src.models.pca_lstm.train --n-jobs 2
         # limita o paralelismo do ajuste das variaveis atmosfericas (padrao: todos os
         # nucleos) - reduza se faltar memoria (ver fit_reduction_per_variable)
+    python3 -m src.models.pca_lstm.train --force-refit
+        # ignora o cache do ajuste de reducao (models/_reduction_cache/) e reajusta o
+        # PCA/PLS do zero - o cache e reaproveitado automaticamente entre execucoes do
+        # mesmo --reduction (e --pls-lag-shift), incluindo entre hiperparametros
+        # diferentes do LSTM (ver run_hparam_sweep.py), enquanto os .nc de treino e os
+        # parametros de reducao nao mudarem (ver load_or_fit_reduction)
 
 Passos:
     1. Carrega os dados de treino (.nc, cache local do kagglehub) e do teste real.
@@ -34,6 +40,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+import gc
 import json
 import os
 import sys
@@ -56,6 +63,7 @@ from src.data import (
     LAGS,
     TP_VAR,
     TRAIN_END,
+    TRAIN_FILES,
     build_examples,
     compute_normalization_stats,
     load_all_datasets,
@@ -96,6 +104,114 @@ RUN_DIRS = {
     "pls_concurrent": "models/pls_concurrent_lstm_run1",
     "pls_lagged": "models/pls_lagged_lstm_run1",
 }
+
+# Cache do ajuste de reducao (Passo 2 - a etapa cara/propensa a OOM: SVD do PCA, NIPALS do
+# PLS). O reduction_objects/component_series ajustado so depende do metodo de reducao, do
+# pls_lag_shift, dos dados de treino e dos hiperparametros de reducao (VARIANCE_THRESHOLD etc.)
+# - nunca dos hiperparametros do LSTM (--hidden-size/--dropout/--lr) nem do --run-dir. Isso
+# significa que rodar o mesmo metodo varias vezes (ex.: run_hparam_sweep.py testando varios
+# hiperparametros do LSTM) refazia esse ajuste caro do zero a cada execucao, sem necessidade -
+# ver conversa. O cache fica fora de RUN_DIRS (que e por --run-dir) justamente para ser
+# compartilhado entre execucoes diferentes do mesmo metodo.
+REDUCTION_CACHE_DIR = "models/_reduction_cache"
+
+
+def _reduction_cache_path(method: str, pls_lag_shift: int) -> str:
+    nome = method if method != "pls_lagged" else f"pls_lagged_shift{pls_lag_shift}"
+    return f"{REDUCTION_CACHE_DIR}/{nome}.joblib"
+
+
+def _reduction_cache_config(method: str, pls_lag_shift: int, train_end_idx: int) -> dict:
+    """Parametros que, se mudarem, invalidam o cache (o ajuste teria saido diferente)."""
+    return {
+        "method": method,
+        "pls_lag_shift": pls_lag_shift if method == "pls_lagged" else None,
+        "train_end_idx": train_end_idx,
+        "variance_threshold": VARIANCE_THRESHOLD,
+        "pca_max_components": PCA_MAX_COMPONENTS,
+        "pls_max_components": PLS_MAX_COMPONENTS,
+        "pls_max_iter": PLS_MAX_ITER,
+    }
+
+
+def _data_fingerprint(competition_path: str) -> dict[str, float]:
+    """mtime de cada .nc de treino usado no ajuste - detecta dado trocado/atualizado mesmo
+    se os parametros de configuracao (_reduction_cache_config) nao mudaram."""
+    from src.data import TRAIN_FILES
+
+    fingerprint = {}
+    for key in TRAIN_FILES.values():
+        caminho = os.path.join(competition_path, f"{key}.nc")
+        if os.path.exists(caminho):
+            fingerprint[key] = os.path.getmtime(caminho)
+    return fingerprint
+
+
+def load_or_fit_reduction(
+    ds: xr.Dataset,
+    stats: dict,
+    train_end_idx: int,
+    method: str,
+    pls_lag_shift: int = PLS_LAG_SHIFT,
+    n_jobs: int = N_JOBS_REDUCTION,
+    force_refit: bool = False,
+) -> tuple[dict, dict]:
+    """Reusa o cache do ajuste de reducao (ver REDUCTION_CACHE_DIR) se ele bater com a
+    configuracao atual e os dados de treino nao tiverem mudado; caso contrario, ajusta do
+    zero via fit_reduction_per_variable e salva o resultado no cache para as proximas.
+
+    O cache guarda so `reduction_objects` + `stats` (nao `component_series`): num acerto,
+    so o `.transform()` (barato, sem SVD/NIPALS) roda de novo em cima do `ds` que o chamador
+    ja tem em memoria (Passo 1 sempre carrega os dados antes de chegar aqui) - isso tambem
+    permite popular o cache retroativamente a partir de um `reduction_and_stats.joblib` ja
+    salvo por uma execucao anterior (mesmo formato), sem precisar re-carregar os .nc."""
+    cache_path = _reduction_cache_path(method, pls_lag_shift)
+    config_atual = _reduction_cache_config(method, pls_lag_shift, train_end_idx)
+    fingerprint_atual = _data_fingerprint(download_competition_data())
+
+    if not force_refit and os.path.exists(cache_path):
+        cache = joblib.load(cache_path)
+        if cache.get("config") == config_atual and cache.get("data_fingerprint") == fingerprint_atual:
+            print(
+                f"  cache de reducao reaproveitado ({cache_path}, calculado em "
+                f"{cache.get('saved_at', '?')}) - pulando o ajuste do PCA/PLS"
+            )
+            reduction_objects = cache["reduction_objects"]
+            # so o .transform() (barato) precisa rodar de novo - o ds ja esta em memoria
+            # de qualquer forma (Passo 1), entao isso nao volta a tocar disco/rede.
+            component_series = {
+                var: reduction_objects[var]
+                .transform(((ds[var].values.astype("float32") - cache["stats"][var][0]) / cache["stats"][var][1]))
+                .astype("float32")
+                for var in reduction_objects
+            }
+            return reduction_objects, component_series
+        motivo = "config diferente" if cache.get("config") != config_atual else "dados de treino mudaram"
+        print(
+            f"  cache de reducao em {cache_path} invalido ({motivo}; calculado em "
+            f"{cache.get('saved_at', '?')}) - recalculando"
+        )
+    elif force_refit and os.path.exists(cache_path):
+        print(f"  --force-refit: ignorando cache existente em {cache_path}")
+
+    reduction_objects, component_series = fit_reduction_per_variable(
+        ds, stats, train_end_idx, method=method, pls_lag_shift=pls_lag_shift, n_jobs=n_jobs
+    )
+
+    os.makedirs(REDUCTION_CACHE_DIR, exist_ok=True)
+    joblib.dump(
+        {
+            "reduction_objects": reduction_objects,
+            "stats": stats,
+            "config": config_atual,
+            "data_fingerprint": fingerprint_atual,
+            "saved_at": pd.Timestamp.now().isoformat(),
+        },
+        cache_path,
+    )
+    print(f"  cache de reducao salvo em {cache_path}")
+
+    return reduction_objects, component_series
 
 
 class _Tee:
@@ -343,6 +459,7 @@ def main(
     lr: float = LR,
     n_jobs: int = N_JOBS_REDUCTION,
     seed: int = SEED,
+    force_refit: bool = False,
 ):
     """Ponto de entrada publico: prepara a pasta do run e loga tudo (console + arquivo)
     em `{run_dir}/train.log`, alem de delegar o treino de fato para `_train`.
@@ -353,7 +470,10 @@ def main(
     `n_jobs` controla o paralelismo do ajuste das variaveis atmosfericas (Passo 2) -
     ver fit_reduction_per_variable. `seed` fixa a inicializacao dos pesos do LSTM e o
     shuffle do DataLoader (nao fixados antes - cada rodada dava um RMSE levemente
-    diferente mesmo com os mesmos dados/hiperparametros)."""
+    diferente mesmo com os mesmos dados/hiperparametros). `force_refit` ignora o
+    cache do ajuste de reducao (ver load_or_fit_reduction/REDUCTION_CACHE_DIR) -
+    use se os dados de treino mudaram sem que o mtime dos .nc tenha mudado (ex.:
+    substituicao manual preservando timestamp) ou para depurar o proprio cache."""
     assert method in REDUCTION_METHODS, f"method invalido: {method} (esperado um de {REDUCTION_METHODS})"
     run_dir = run_dir or RUN_DIRS[method]
     os.makedirs(run_dir, exist_ok=True)
@@ -361,7 +481,7 @@ def main(
     log_path = f"{run_dir}/train.log"
     with open(log_path, "a") as log_file, contextlib.redirect_stdout(_Tee(sys.stdout, log_file)):
         print(f"\n{'=' * 70}\nnova execucao ({method}) em {pd.Timestamp.now()}\n{'=' * 70}")
-        return _train(method, pls_lag_shift, run_dir, hidden_size, dropout, lr, n_jobs, seed)
+        return _train(method, pls_lag_shift, run_dir, hidden_size, dropout, lr, n_jobs, seed, force_refit)
 
 
 def _train(
@@ -373,6 +493,7 @@ def _train(
     lr: float = LR,
     n_jobs: int = N_JOBS_REDUCTION,
     seed: int = SEED,
+    force_refit: bool = False,
 ):
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -402,13 +523,25 @@ def _train(
 
     print(f"\n=== 2. Reduzindo dimensionalidade por variavel ({method}, so no treino interno) ===")
     tp_raw = ds[TP_VAR].values.astype("float32").copy()
-    reduction_objects, component_series = fit_reduction_per_variable(
-        ds, stats, train_end_idx, method=method, pls_lag_shift=pls_lag_shift, n_jobs=n_jobs
+    reduction_objects, component_series = load_or_fit_reduction(
+        ds, stats, train_end_idx, method=method, pls_lag_shift=pls_lag_shift, n_jobs=n_jobs,
+        force_refit=force_refit,
     )
 
     n_components_tp = reduction_objects[TP_VAR].n_components_
     n_features_hindcast = sum(reduction_objects[v].n_components_ for v in ALL_VARS)
     n_features_atm = sum(reduction_objects[v].n_components_ for v in FEATURE_VARS)
+
+    # As 9 variaveis atmosfericas ja viraram component_series (pequeno) - a grade bruta delas
+    # nao e mais usada no resto da funcao (so tp, via ds[TP_VAR], no calculo da climatologia
+    # do Passo 5). Soltar essa memoria agora (nao no fim da funcao) reduz o pico sustentado
+    # durante o treino do LSTM/retreino, que sao os passos mais longos - ver conversa sobre
+    # runs presos por pouca memoria.
+    for var in FEATURE_VARS:
+        if var in ds.data_vars:
+            del ds[var]
+        datasets.pop(TRAIN_FILES[var], None)
+    gc.collect()
 
     print("\n=== 3. Montando exemplos (contrato origem + lag) ===")
     train_ex = build_examples(component_series, 0, train_end_idx, last_valid_idx=train_end_idx)
@@ -647,6 +780,12 @@ def parse_args() -> argparse.Namespace:
         help="Seed do torch/numpy (inicializacao dos pesos do LSTM e shuffle do DataLoader), "
         "para o treino ser reprodutivel entre execucoes (padrao: %(default)s).",
     )
+    parser.add_argument(
+        "--force-refit",
+        action="store_true",
+        help="Ignora o cache do ajuste de reducao (ver REDUCTION_CACHE_DIR) e reajusta o "
+        "PCA/PLS do zero mesmo se ja houver um cache valido para esse metodo/pls-lag-shift.",
+    )
     return parser.parse_args()
 
 
@@ -661,4 +800,5 @@ if __name__ == "__main__":
         lr=args.lr,
         n_jobs=args.n_jobs,
         seed=args.seed,
+        force_refit=args.force_refit,
     )

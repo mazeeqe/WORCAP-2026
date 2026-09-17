@@ -214,3 +214,97 @@ Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis
 === 8. Gerando submissao ===
 Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
   salvo em submissions/submission_pca_lstm.csv (1885464 linhas)
+
+======================================================================
+nova execucao (pca) em 2026-09-16 18:43:09.115081
+======================================================================
+=== 0. Metodo de reducao dimensional: pca | seed: 42 | hiperparametros: hidden_size=128 dropout=0.1 lr=0.001 ===
+=== 1. Carregando dados ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pca, so no treino interno) ===
+  PCA[tp] (referencia): 85 componentes explicam 90.0% da variancia (treino interno)
+
+======================================================================
+nova execucao (pca) em 2026-09-16 18:52:53.846519
+======================================================================
+=== 0. Metodo de reducao dimensional: pca | seed: 42 | hiperparametros: hidden_size=128 dropout=0.1 lr=0.001 ===
+=== 1. Carregando dados ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pca, so no treino interno) ===
+  PCA[tp] (referencia): 85 componentes explicam 90.0% da variancia (treino interno)
+  PCA[t2]: 3 componentes explicam 90.5% da variancia de X (treino interno)
+  PCA[cloud_cover]: 29 componentes explicam 90.1% da variancia de X (treino interno)
+  PCA[shum_850]: 12 componentes explicam 90.1% da variancia de X (treino interno)
+  PCA[surface_pressure]: 6 componentes explicam 90.8% da variancia de X (treino interno)
+  PCA[u_850]: 18 componentes explicam 90.3% da variancia de X (treino interno)
+  PCA[v_850]: 21 componentes explicam 90.4% da variancia de X (treino interno)
+  PCA[temperature_850]: 6 componentes explicam 91.6% da variancia de X (treino interno)
+  PCA[rel_hum_850]: 31 componentes explicam 90.1% da variancia de X (treino interno)
+  PCA[geopotential_850]: 6 componentes explicam 92.3% da variancia de X (treino interno)
+
+=== 3. Montando exemplos (contrato origem + lag) ===
+  treino: 22188 exemplos | validacao: 852 exemplos
+
+=== 4. Treinando (selecao de epocas via validacao interna) ===
+  epoca  1/25 | treino MSE(pca) 162.7180 | val MSE(pca) 147.0403
+  epoca  2/25 | treino MSE(pca) 119.3767 | val MSE(pca) 146.6489
+  epoca  3/25 | treino MSE(pca) 109.1370 | val MSE(pca) 151.7898
+  epoca  4/25 | treino MSE(pca) 101.9537 | val MSE(pca) 156.1453
+  epoca  5/25 | treino MSE(pca) 96.1343 | val MSE(pca) 158.7376
+  epoca  6/25 | treino MSE(pca) 91.6073 | val MSE(pca) 160.3279
+  epoca  7/25 | treino MSE(pca) 88.1321 | val MSE(pca) 163.5414
+  early stopping na epoca 7 (melhor: 2)
+  treino concluido em 223s | melhor epoca: 2 | val MSE(pca): 146.6489
+
+=== 5. Avaliando contra baselines (grade real, mm/dia) ===
+  PCA+LSTM              RMSE=1.876  MAE=1.139  (mm/dia)
+  Persistencia  RMSE=4.004  MAE=2.372  (mm/dia)
+  Climatologia  RMSE=1.891  MAE=1.137  (mm/dia)
+
+=== 5b. Salvando artefatos para visualizacao (models/) ===
+  history.csv, metrics.json e sample_grids.npz salvos em models/pca_lstm_run1/
+
+=== 6. Retreinando com todo o historico rotulado (1940-2022) ===
+  epoca  1/2 | MSE(pca) 162.1895
+  epoca  2/2 | MSE(pca) 118.9737
+  modelo final e objetos de reducao salvos em models/pca_lstm_run1/
+
+=== 7. Prevendo o teste real (2023-2024) ===
+
+=== 8. Gerando submissao ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  salvo em submissions/submission_pca_lstm.csv (1885464 linhas)
