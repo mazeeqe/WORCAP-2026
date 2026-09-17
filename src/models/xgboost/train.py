@@ -53,6 +53,8 @@ from src.models.pca_lstm.train import fit_reduction_per_variable, reconstruct_tp
 from src.submit import build_submission
 
 RUN_DIR = "models/xgboost_run1"
+RUN_DIR_ONI = "models/xgboost_oni_run1"
+CAMINHO_ONI = "oni_mensal.csv"  # gerado localmente por preparar_oni.py (nao versionado)
 
 XGB_PARAMS = dict(
     n_estimators=500, max_depth=5, learning_rate=0.03,
@@ -61,13 +63,57 @@ XGB_PARAMS = dict(
 )
 
 
+# ════════════════════════════════════════════════════════════
+# EXPERIMENTO: ONI (indice El Nino/La Nina) como feature de entrada
+# ════════════════════════════════════════════════════════════
+# Motivacao: models/pls_lagged_lstm_run1/enso_correction/ (Tomaz) corrige o
+# resultado DEPOIS via uma correcao linear global calibrada so em 2019-2022
+# (ONI fraco/moderado, -1.10 a +0.90) -- nao cobre o El Nino extremo real de
+# 2023-2024 (+2.0) e por isso satura em vez de extrapolar. Aqui, em vez de
+# corrigir depois, o ONI vira uma FEATURE DE ENTRADA do XGBoost, treinada
+# com os 83 anos inteiros de historico (que incluem El Ninos fortes de
+# verdade: 1982-83, 1997-98, 2015-16) -- ver discussao no grupo antes de
+# decidir se isso deve entrar em src/data.py pra todo mundo (LSTM e
+# ConvLSTM tambem se beneficiariam do mesmo sinal).
+def carregar_oni_por_data(caminho: str = CAMINHO_ONI) -> pd.Series:
+    """Serie do indice ONI (NOAA CPC, ver preparar_oni.py) indexada por mes.
+    NAO tem cobertura antes de 1950 -- a fonte oficial nao publica ONI pra
+    tras disso. Meses de 1940-1949 do treino ficam sem valor real (ver
+    alinhar_oni, preenchido com 0.0 = neutro); e uma limitacao conhecida
+    deste experimento, nao escondida."""
+    df = pd.read_csv(caminho, parse_dates=["data"])
+    return df.set_index("data")["oni"]
+
+
+def alinhar_oni(oni_por_data: pd.Series, datas) -> np.ndarray:
+    """Valor de ONI pra cada uma das `datas` (mes-a-mes); 0.0 (neutro) fora da
+    cobertura da fonte (pre-1950, ver carregar_oni_por_data)."""
+    return oni_por_data.reindex(pd.DatetimeIndex(datas)).fillna(0.0).values.astype("float32")
+
+
+def montar_features_oni(oni_serie: np.ndarray, origin_idx: np.ndarray, alvo_idx: np.ndarray,
+                         hindcast_len: int) -> np.ndarray:
+    """oni_serie: array (n_meses,) alinhado aos MESMOS indices inteiros usados em
+    component_series (src/data.py). Monta, por exemplo: os H meses de ONI da
+    janela de hindcast (mesma janela das demais variaveis) + o ONI do mes
+    o+L-1 (mesma convencao de alvo_atm em build_examples -- sem vazamento,
+    ver a correcao do Tomaz em src/data.py)."""
+    hindcast_cols = np.stack([oni_serie[o - hindcast_len + 1: o + 1] for o in origin_idx])
+    alvo_col = oni_serie[alvo_idx - 1].reshape(-1, 1)
+    return np.concatenate([hindcast_cols, alvo_col], axis=1).astype("float32")
+
+
 def flatten_features(hindcast: np.ndarray, alvo_atm: np.ndarray, tp_congelado: np.ndarray,
-                      lag: np.ndarray) -> np.ndarray:
+                      lag: np.ndarray, oni_extra: np.ndarray | None = None) -> np.ndarray:
     """XGBoost nao processa sequencia -- achata o hindcast (N, H, F) em (N, H*F) e
-    concatena com as features do mes alvo, tp congelado (origem) e o lag."""
+    concatena com as features do mes alvo, tp congelado (origem), o lag, e
+    opcionalmente as colunas de ONI (ver montar_features_oni, --with-oni)."""
     n = hindcast.shape[0]
     hindcast_flat = hindcast.reshape(n, -1)
-    return np.concatenate([hindcast_flat, alvo_atm, tp_congelado, lag.reshape(-1, 1)], axis=1).astype("float32")
+    partes = [hindcast_flat, alvo_atm, tp_congelado, lag.reshape(-1, 1)]
+    if oni_extra is not None:
+        partes.append(oni_extra)
+    return np.concatenate(partes, axis=1).astype("float32")
 
 
 class MultiOutputXGB:
@@ -144,8 +190,14 @@ def load_lstm_run(run_dir: str) -> dict | None:
     return {"lstm": lstm, "reduction_objects": reduction_objects, "stats": artefatos["stats"]}
 
 
-def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
+def main(ensemble_with: str | None = None, run_dir: str | None = None, with_oni: bool = False):
+    run_dir = run_dir or (RUN_DIR_ONI if with_oni else RUN_DIR)
     os.makedirs(run_dir, exist_ok=True)
+
+    oni_por_data = carregar_oni_por_data() if with_oni else None
+    if with_oni:
+        print(f"=== 0. ONI ativado -- {len(oni_por_data)} meses carregados de {CAMINHO_ONI} "
+              f"({oni_por_data.index.min().date()} a {oni_por_data.index.max().date()}) ===")
 
     print("=== 1. Carregando dados ===")
     datasets = load_all_datasets()
@@ -157,6 +209,8 @@ def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
 
     stats = compute_normalization_stats(ds, train_end=TRAIN_END)
     tp_raw = ds[TP_VAR].values.astype("float32").copy()
+
+    oni_serie_treino = alinhar_oni(oni_por_data, time_index) if with_oni else None
 
     print("\n=== 2. Reduzindo dimensionalidade por variavel (PCA, so no treino interno) ===")
     print("  (reaproveitando fit_reduction_per_variable de src/models/pca_lstm/train.py)")
@@ -171,9 +225,14 @@ def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
     hindcast_va, atm_va, tp_froz_va, lag_va, y_va, origin_va, alvo_va = val_ex
     print(f"  treino: {len(y_tr)} exemplos | validacao: {len(y_va)} exemplos")
 
-    X_tr = flatten_features(hindcast_tr, atm_tr, tp_froz_tr, lag_tr)
-    X_va = flatten_features(hindcast_va, atm_va, tp_froz_va, lag_va)
-    print(f"  features achatadas: {X_tr.shape[1]} colunas")
+    oni_tr = oni_va = None
+    if with_oni:
+        oni_tr = montar_features_oni(oni_serie_treino, origin_tr, alvo_tr, HINDCAST_LEN)
+        oni_va = montar_features_oni(oni_serie_treino, origin_va, alvo_va, HINDCAST_LEN)
+
+    X_tr = flatten_features(hindcast_tr, atm_tr, tp_froz_tr, lag_tr, oni_tr)
+    X_va = flatten_features(hindcast_va, atm_va, tp_froz_va, lag_va, oni_va)
+    print(f"  features achatadas: {X_tr.shape[1]} colunas" + (" (incluindo ONI)" if with_oni else ""))
 
     print(f"\n=== 4. Treinando XGBoost ({n_components_tp} regressores, 1 por componente PCA de tp) ===")
     modelo = MultiOutputXGB(XGB_PARAMS, n_components_tp).fit(X_tr, y_tr, X_va, y_va)
@@ -202,7 +261,7 @@ def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
     with open(f"{run_dir}/metrics.json", "w") as f:
         json.dump({
             "xgb_params": {k: v for k, v in XGB_PARAMS.items()},
-            "best_epoch": melhor_iter_media,
+            "best_epoch": melhor_iter_media, "with_oni": with_oni,
             "modelo": metrics_model, "persistencia": metrics_persist, "climatologia": metrics_clim,
         }, f, indent=2)
 
@@ -247,8 +306,9 @@ def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
 
     print("\n=== 6. Retreinando com todo o historico rotulado (1940-2022) ===")
     full_ex = build_examples(component_series, 0, last_valid_idx, last_valid_idx=last_valid_idx)
-    hindcast_full, atm_full, tp_froz_full, lag_full, y_full, _, _ = full_ex
-    X_full = flatten_features(hindcast_full, atm_full, tp_froz_full, lag_full)
+    hindcast_full, atm_full, tp_froz_full, lag_full, y_full, origin_full, alvo_full = full_ex
+    oni_full = montar_features_oni(oni_serie_treino, origin_full, alvo_full, HINDCAST_LEN) if with_oni else None
+    X_full = flatten_features(hindcast_full, atm_full, tp_froz_full, lag_full, oni_full)
     modelo_final = MultiOutputXGB(XGB_PARAMS, n_components_tp)
     modelo_final.melhor_iteracao_por_componente = modelo.melhor_iteracao_por_componente
     modelo_final.fit_no_eval(X_full, y_full)
@@ -276,7 +336,18 @@ def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
     tp_congelado_batch = np.repeat(tp_congelado_teste[None, :], n_meses_teste, axis=0)
     lag_batch = (teste_ds["lag_meses"].values / max(LAGS)).astype("float32")
 
-    X_teste = flatten_features(hindcast_batch, atm_teste, tp_congelado_batch, lag_batch)
+    oni_teste = None
+    if with_oni:
+        # origem fixa (dez/2022) pra todo mundo -- mesma janela de hindcast repetida
+        oni_hindcast_teste = np.repeat(
+            oni_serie_treino[origem_idx - HINDCAST_LEN + 1: origem_idx + 1][None, :], n_meses_teste, axis=0)
+        # alvo_atm do teste ja e o mes o+L-1 (ver teste_features.nc); pega o ONI dessas
+        # mesmas datas calendario (fora do intervalo de time_index, por isso por data)
+        datas_feature_teste = pd.DatetimeIndex(teste_ds["time"].values) - pd.DateOffset(months=1)
+        oni_alvo_teste = alinhar_oni(oni_por_data, datas_feature_teste).reshape(-1, 1)
+        oni_teste = np.concatenate([oni_hindcast_teste, oni_alvo_teste], axis=1).astype("float32")
+
+    X_teste = flatten_features(hindcast_batch, atm_teste, tp_congelado_batch, lag_batch, oni_teste)
     pred_pca_teste = modelo_final.predict(X_teste)
     pred_grid_teste = reconstruct_tp(reduction_objects[TP_VAR], stats[TP_VAR], pred_pca_teste)
     pred_grid_teste = np.clip(pred_grid_teste, 0, None)
@@ -290,7 +361,7 @@ def main(ensemble_with: str | None = None, run_dir: str = RUN_DIR):
     os.makedirs("submissions", exist_ok=True)
     competition_path = download_competition_data()
     sample_path = os.path.join(competition_path, "sample_submission.csv")
-    output_path = "submissions/submission_xgboost.csv"
+    output_path = f"submissions/submission_xgboost{'_oni' if with_oni else ''}.csv"
     submission_df = build_submission(predictions_da, sample_path, output_path)
     print(f"  salvo em {output_path} ({len(submission_df)} linhas)")
 
@@ -305,10 +376,19 @@ def parse_args() -> argparse.Namespace:
              "para combinar as previsoes via Ridge. Requer ter rodado 'python3 -m "
              "src.models.pca_lstm.train' antes (os pesos nao sao versionados no git).",
     )
-    parser.add_argument("--run-dir", default=RUN_DIR, help="Pasta de saida dos artefatos (padrao: %(default)s).")
+    parser.add_argument(
+        "--run-dir", default=None,
+        help=f"Pasta de saida dos artefatos (padrao: {RUN_DIR}, ou {RUN_DIR_ONI} com --with-oni).",
+    )
+    parser.add_argument(
+        "--with-oni", action="store_true",
+        help="Experimento: adiciona o indice ONI (El Nino/La Nina, NOAA CPC) como feature de "
+             "entrada -- ver montar_features_oni. Requer 'python3 preparar_oni.py' rodado antes "
+             "(gera oni_mensal.csv localmente, nao versionado).",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    main(ensemble_with=args.ensemble_with, run_dir=args.run_dir)
+    main(ensemble_with=args.ensemble_with, run_dir=args.run_dir, with_oni=args.with_oni)
