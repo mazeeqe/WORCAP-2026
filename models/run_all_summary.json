@@ -1,26 +1,23 @@
 [
   {
-    "method": "pca",
+    "model": "pca_lstm",
+    "variation": "pca",
     "status": "ok",
-    "returncode": 0,
-    "duracao_s": 829.6,
-    "rmse": 1.56565260887146,
-    "mae": 0.9493640661239624
+    "rmse": 1.875809669494629,
+    "mae": 1.139306902885437
   },
   {
-    "method": "pls_concurrent",
+    "model": "pca_lstm",
+    "variation": "pls_concurrent",
     "status": "ok",
-    "returncode": 0,
-    "duracao_s": 1702.9,
-    "rmse": 1.5465649366378784,
-    "mae": 0.9393736124038696
+    "rmse": 1.8617349863052368,
+    "mae": 1.1318048238754272
   },
   {
-    "method": "pls_lagged",
+    "model": "pca_lstm",
+    "variation": "pls_lagged",
     "status": "ok",
-    "returncode": 0,
-    "duracao_s": 1420.2,
-    "rmse": 1.569007396697998,
-    "mae": 0.9551924467086792
+    "rmse": 1.8588327169418335,
+    "mae": 1.1295422315597534
   }
 ]
