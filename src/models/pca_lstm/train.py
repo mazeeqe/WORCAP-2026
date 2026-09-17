@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+import gc
 import json
 import os
 import sys
@@ -62,6 +63,7 @@ from src.data import (
     LAGS,
     TP_VAR,
     TRAIN_END,
+    TRAIN_FILES,
     build_examples,
     compute_normalization_stats,
     load_all_datasets,
@@ -529,6 +531,17 @@ def _train(
     n_components_tp = reduction_objects[TP_VAR].n_components_
     n_features_hindcast = sum(reduction_objects[v].n_components_ for v in ALL_VARS)
     n_features_atm = sum(reduction_objects[v].n_components_ for v in FEATURE_VARS)
+
+    # As 9 variaveis atmosfericas ja viraram component_series (pequeno) - a grade bruta delas
+    # nao e mais usada no resto da funcao (so tp, via ds[TP_VAR], no calculo da climatologia
+    # do Passo 5). Soltar essa memoria agora (nao no fim da funcao) reduz o pico sustentado
+    # durante o treino do LSTM/retreino, que sao os passos mais longos - ver conversa sobre
+    # runs presos por pouca memoria.
+    for var in FEATURE_VARS:
+        if var in ds.data_vars:
+            del ds[var]
+        datasets.pop(TRAIN_FILES[var], None)
+    gc.collect()
 
     print("\n=== 3. Montando exemplos (contrato origem + lag) ===")
     train_ex = build_examples(component_series, 0, train_end_idx, last_valid_idx=train_end_idx)
