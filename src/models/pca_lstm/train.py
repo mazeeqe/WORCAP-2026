@@ -156,7 +156,13 @@ def load_or_fit_reduction(
 ) -> tuple[dict, dict]:
     """Reusa o cache do ajuste de reducao (ver REDUCTION_CACHE_DIR) se ele bater com a
     configuracao atual e os dados de treino nao tiverem mudado; caso contrario, ajusta do
-    zero via fit_reduction_per_variable e salva o resultado no cache para as proximas."""
+    zero via fit_reduction_per_variable e salva o resultado no cache para as proximas.
+
+    O cache guarda so `reduction_objects` + `stats` (nao `component_series`): num acerto,
+    so o `.transform()` (barato, sem SVD/NIPALS) roda de novo em cima do `ds` que o chamador
+    ja tem em memoria (Passo 1 sempre carrega os dados antes de chegar aqui) - isso tambem
+    permite popular o cache retroativamente a partir de um `reduction_and_stats.joblib` ja
+    salvo por uma execucao anterior (mesmo formato), sem precisar re-carregar os .nc."""
     cache_path = _reduction_cache_path(method, pls_lag_shift)
     config_atual = _reduction_cache_config(method, pls_lag_shift, train_end_idx)
     fingerprint_atual = _data_fingerprint(download_competition_data())
@@ -168,7 +174,16 @@ def load_or_fit_reduction(
                 f"  cache de reducao reaproveitado ({cache_path}, calculado em "
                 f"{cache.get('saved_at', '?')}) - pulando o ajuste do PCA/PLS"
             )
-            return cache["reduction_objects"], cache["component_series"]
+            reduction_objects = cache["reduction_objects"]
+            # so o .transform() (barato) precisa rodar de novo - o ds ja esta em memoria
+            # de qualquer forma (Passo 1), entao isso nao volta a tocar disco/rede.
+            component_series = {
+                var: reduction_objects[var]
+                .transform(((ds[var].values.astype("float32") - cache["stats"][var][0]) / cache["stats"][var][1]))
+                .astype("float32")
+                for var in reduction_objects
+            }
+            return reduction_objects, component_series
         motivo = "config diferente" if cache.get("config") != config_atual else "dados de treino mudaram"
         print(
             f"  cache de reducao em {cache_path} invalido ({motivo}; calculado em "
@@ -185,7 +200,7 @@ def load_or_fit_reduction(
     joblib.dump(
         {
             "reduction_objects": reduction_objects,
-            "component_series": component_series,
+            "stats": stats,
             "config": config_atual,
             "data_fingerprint": fingerprint_atual,
             "saved_at": pd.Timestamp.now().isoformat(),
