@@ -172,8 +172,10 @@ class HindcastForecastLSTM(nn.Module):
         hidden_size: int = 128,
         num_layers: int = 1,
         dropout: float = 0.1,
+        n_oni_features: int = 0,
     ):
         super().__init__()
+        self.n_oni_features = n_oni_features
         self.encoder = nn.LSTM(
             input_size=n_features_hindcast,
             hidden_size=hidden_size,
@@ -181,7 +183,10 @@ class HindcastForecastLSTM(nn.Module):
             batch_first=True,
             dropout=dropout if num_layers > 1 else 0.0,
         )
-        decoder_input_dim = hidden_size + n_features_atm + n_components_tp + 1  # +1 = lag
+        # +1 = lag; +n_oni_features = indice ONI (ver --use-oni-feature em train.py -
+        # 0 por padrao, entao a dimensao fica identica a de antes dessa feature existir
+        # e checkpoints ja salvos continuam carregando normalmente)
+        decoder_input_dim = hidden_size + n_features_atm + n_components_tp + 1 + n_oni_features
         self.decoder = nn.Sequential(
             nn.Linear(decoder_input_dim, hidden_size),
             nn.ReLU(),
@@ -195,13 +200,20 @@ class HindcastForecastLSTM(nn.Module):
         target_month_features: torch.Tensor,
         tp_frozen: torch.Tensor,
         lag: torch.Tensor,
+        oni: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Retorna os coeficientes PCA previstos de tp para o mes alvo (o+L)."""
+        """Retorna os coeficientes PCA previstos de tp para o mes alvo (o+L).
+
+        `oni`: (batch, n_oni_features) - so usado se o modelo foi construido com
+        n_oni_features > 0 (ver --use-oni-feature em train.py)."""
         _, (hn, _) = self.encoder(hindcast_seq)
         context = hn[-1]  # estado oculto da ultima camada, (batch, hidden_size)
 
         if lag.dim() == 1:
             lag = lag.unsqueeze(-1)
 
-        decoder_input = torch.cat([context, target_month_features, tp_frozen, lag], dim=-1)
+        partes = [context, target_month_features, tp_frozen, lag]
+        if self.n_oni_features > 0:
+            partes.append(oni)
+        decoder_input = torch.cat(partes, dim=-1)
         return self.decoder(decoder_input)
