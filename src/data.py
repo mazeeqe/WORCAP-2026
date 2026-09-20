@@ -2,9 +2,16 @@
 
 Contrato combinado na Fase 0 do PLANO_TRABALHO.md: para uma origem `o` e um lag `L`
 (1 a 24), o exemplo de treino e
-    X = [variaveis atmosfericas do mes o+L, tp do mes o (congelado), L]
+    X = [variaveis atmosfericas do mes o+L-1, tp do mes o (congelado), L]
     y = tp do mes o+L (equivalente a tp_alvo do mes o+L-1; ver nota abaixo)
 simulando exatamente o cenario do teste real (tp_ultima_obs congelado em dez/2022).
+
+O deslocamento `o+L-1` e essencial: usar o mes `o+L` (o proprio mes-alvo) vazaria
+dado indisponivel no momento da previsao (o modelo passaria a ser um estimador do
+mes-alvo usando dado do mes-alvo, nao um previsor) - ver auditoria do criterio de
+vazamento temporal. Em `teste_features.nc`, cada posicao do eixo do mes-alvo ja
+guarda o estado atmosferico do mes anterior, entao esse deslocamento tambem alinha
+o treino com o que o teste real de fato fornece.
 
 Nota sobre o alvo: `treino_tp_alvo.nc` e so `tp` deslocado um mes para frente
 (`tp_alvo[t] == tp[t+1]`), confirmado inspecionando os dados brutos. Por isso
@@ -123,7 +130,8 @@ def build_examples(
 
     Retorna:
         hindcast: (N, hindcast_len, F_total) - todas as variaveis, H meses ate a origem
-        alvo_atm: (N, F_atm) - variaveis atmosfericas (sem tp) no mes o+L
+        alvo_atm: (N, F_atm) - variaveis atmosfericas (sem tp) no mes o+L-1 (ultimo mes
+            com dado atmosferico disponivel antes do alvo o+L - ver nota de modulo)
         tp_congelado: (N, C_tp) - tp no mes da origem o (simula tp_ultima_obs)
         lag: (N,) - L normalizado em [1/24, 1]
         y: (N, C_tp) - tp no mes o+L (o que o modelo deve prever)
@@ -146,7 +154,8 @@ def build_examples(
             if alvo_idx > last_valid_idx:
                 break  # lags maiores tambem estourariam - origens perto do fim tem menos lags
 
-            alvo_atm = np.concatenate([component_series[v][alvo_idx] for v in atm_vars])
+            feature_idx = alvo_idx - 1  # ultimo mes com dado atmosferico disponivel antes do alvo
+            alvo_atm = np.concatenate([component_series[v][feature_idx] for v in atm_vars])
             y = component_series[TP_VAR][alvo_idx]
 
             hindcast_list.append(hindcast_o)

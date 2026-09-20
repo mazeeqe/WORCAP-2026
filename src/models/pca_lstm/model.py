@@ -159,8 +159,10 @@ class SpatialPLS:
 
 
 class HindcastForecastLSTM(nn.Module):
-    """Encoder LSTM sobre a janela historica + decoder condicionado no mes alvo,
-    no tp congelado (ultima observacao real) e no lag (meses a frente)."""
+    """Encoder LSTM sobre a janela historica + decoder condicionado no ultimo mes com
+    dado atmosferico disponivel antes do alvo (mes o+L-1, ver src/data.py), no tp
+    congelado (ultima observacao real) e no lag (meses a frente). `target_month_features`
+    mantem esse nome por compatibilidade, mas nao contem dado do proprio mes-alvo."""
 
     def __init__(
         self,

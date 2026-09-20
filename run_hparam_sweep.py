@@ -32,7 +32,7 @@ import time
 from itertools import product
 from pathlib import Path
 
-from src.models.pca_lstm.train import DROPOUT, HIDDEN_SIZE, LR, PLS_LAG_SHIFT, REDUCTION_METHODS
+from src.models.pca_lstm.train import DROPOUT, HIDDEN_SIZE, LR, N_JOBS_REDUCTION, PLS_LAG_SHIFT, REDUCTION_METHODS
 
 SUMMARY_PATH = Path("models/run_all_summary.json")
 SWEEP_DIR = Path("models/hparam_sweep")
@@ -75,7 +75,7 @@ def run_dir_for(method: str, lr: float, hidden_size: int, dropout: float) -> Pat
     return SWEEP_DIR / f"{method}_lr{fmt(lr)}_hs{hidden_size}_do{fmt(dropout)}"
 
 
-def run_one(method: str, pls_lag_shift: int, lr: float, hidden_size: int, dropout: float) -> dict:
+def run_one(method: str, pls_lag_shift: int, lr: float, hidden_size: int, dropout: float, n_jobs: int) -> dict:
     run_dir = run_dir_for(method, lr, hidden_size, dropout)
     cmd = [
         sys.executable,
@@ -93,6 +93,8 @@ def run_one(method: str, pls_lag_shift: int, lr: float, hidden_size: int, dropou
         str(dropout),
         "--run-dir",
         str(run_dir),
+        "--n-jobs",
+        str(n_jobs),
     ]
     print(f"\n{'#' * 70}\n# lr={lr} hidden_size={hidden_size} dropout={dropout}: {' '.join(cmd)}\n{'#' * 70}\n")
 
@@ -150,6 +152,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Para a fila assim que uma combinacao falhar, em vez de continuar com as demais.",
     )
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=N_JOBS_REDUCTION,
+        help="Repassado para --n-jobs em cada treino (so importa em caso de cache miss do "
+        "ajuste de reducao - ver load_or_fit_reduction; com cache, cada combinacao do "
+        "sweep usa o mesmo metodo/pls-lag-shift, entao so a 1a chamada pagaria esse custo "
+        "de qualquer forma). Padrao: %(default)s.",
+    )
     return parser.parse_args()
 
 
@@ -167,7 +178,7 @@ def main():
 
     resumos = []
     for lr, hidden_size, dropout in combos:
-        resumo = run_one(method, args.pls_lag_shift, lr, hidden_size, dropout)
+        resumo = run_one(method, args.pls_lag_shift, lr, hidden_size, dropout, args.n_jobs)
         resumos.append(resumo)
         SWEEP_DIR.mkdir(parents=True, exist_ok=True)
         with open(SWEEP_DIR / "sweep_summary.json", "w") as f:

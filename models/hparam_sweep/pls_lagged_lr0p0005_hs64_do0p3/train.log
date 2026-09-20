@@ -1,0 +1,64 @@
+
+======================================================================
+nova execucao (pls_lagged) em 2026-09-16 23:47:14.040591
+======================================================================
+=== 0. Metodo de reducao dimensional: pls_lagged | seed: 42 | hiperparametros: hidden_size=64 dropout=0.3 lr=0.0005 ===
+=== 1. Carregando dados ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pls_lagged, so no treino interno) ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  cache de reducao reaproveitado (models/_reduction_cache/pls_lagged_shift1.joblib, calculado em 2026-09-16T22:41:07.476219 (backfill de execucao anterior)) - pulando o ajuste do PCA/PLS
+
+=== 3. Montando exemplos (contrato origem + lag) ===
+  treino: 22188 exemplos | validacao: 852 exemplos
+
+=== 4. Treinando (selecao de epocas via validacao interna) ===
+  epoca  1/25 | treino MSE(pca) 227.3640 | val MSE(pca) 148.7944
+  epoca  2/25 | treino MSE(pca) 146.7126 | val MSE(pca) 146.2884
+  epoca  3/25 | treino MSE(pca) 137.5003 | val MSE(pca) 146.3595
+  epoca  4/25 | treino MSE(pca) 134.2075 | val MSE(pca) 145.6964
+  epoca  5/25 | treino MSE(pca) 131.6647 | val MSE(pca) 146.0095
+  epoca  6/25 | treino MSE(pca) 129.3619 | val MSE(pca) 146.2297
+  epoca  7/25 | treino MSE(pca) 128.0263 | val MSE(pca) 147.4984
+  epoca  8/25 | treino MSE(pca) 127.1718 | val MSE(pca) 148.0580
+  epoca  9/25 | treino MSE(pca) 125.9970 | val MSE(pca) 149.6565
+  early stopping na epoca 9 (melhor: 4)
+  treino concluido em 361s | melhor epoca: 4 | val MSE(pca): 145.6964
+
+=== 5. Avaliando contra baselines (grade real, mm/dia) ===
+  PLS(defasado)+LSTM    RMSE=1.872  MAE=1.140  (mm/dia)
+  Persistencia  RMSE=4.004  MAE=2.372  (mm/dia)
+  Climatologia  RMSE=1.891  MAE=1.137  (mm/dia)
+
+=== 5b. Salvando artefatos para visualizacao (models/) ===
+  history.csv, metrics.json e sample_grids.npz salvos em models/hparam_sweep/pls_lagged_lr0p0005_hs64_do0p3/
+
+=== 6. Retreinando com todo o historico rotulado (1940-2022) ===
+  epoca  1/4 | MSE(pca) 226.0436
+  epoca  2/4 | MSE(pca) 146.4107
+  epoca  3/4 | MSE(pca) 138.4015
+  epoca  4/4 | MSE(pca) 134.4981
+  modelo final e objetos de reducao salvos em models/hparam_sweep/pls_lagged_lr0p0005_hs64_do0p3/
+
+=== 7. Prevendo o teste real (2023-2024) ===
+
+=== 8. Gerando submissao ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  salvo em submissions/submission_pls_lagged_lr0p0005_hs64_do0p3_lstm.csv (1885464 linhas)
