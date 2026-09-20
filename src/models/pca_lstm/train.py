@@ -470,6 +470,25 @@ def train_model(
             break
 
     model.load_state_dict(best_state)
+    # O loop acima sobrescreve checkpoint_selecao_epocas.pt a cada epoca com os pesos
+    # ATUAIS (so um backup de recuperacao contra crash - ver comentario acima), entao ao
+    # sair do loop o arquivo em disco tem os pesos da ULTIMA epoca rodada (epoch), nao da
+    # melhor (best_epoch) - a unica coisa que recebe best_state e o objeto `model` em
+    # memoria, via load_state_dict logo acima. Sem este save final, qualquer script que
+    # carregue checkpoint_selecao_epocas.pt depois do treino (postprocess_enso.py,
+    # enso_correction_cv.py) avalia a epoca errada - ver conversa (RMSE deu 1.8548 em vez
+    # de 1.8405 no checkpoint promovido, porque carregava a epoca 8 em vez da 3).
+    torch.save(
+        {
+            "epoch": best_epoch,
+            "model_state": best_state,
+            "optimizer_state": optimizer.state_dict(),
+            "best_val_loss": best_val_loss,
+            "best_epoch": best_epoch,
+            "epochs_sem_melhora": epochs_sem_melhora,
+        },
+        f"{run_dir}/checkpoint_selecao_epocas.pt",
+    )
     return model, best_epoch, best_val_loss, history
 
 

@@ -1,0 +1,12 @@
+{
+  "run_dir": "models/pls_lagged_lstm_run1",
+  "method": "pls_lagged",
+  "rmse_val_sem_correcao": 1.8404556512832642,
+  "mae_val_sem_correcao": 1.112440586090088,
+  "rmse_cv_leave_one_year_out_sem_correcao": 1.818077802658081,
+  "rmse_cv_leave_one_year_out_com_correcao": 1.8900704681873322,
+  "correcao_ajuda_em_cv": false,
+  "oni_min_ajuste": -1.100000023841858,
+  "oni_max_ajuste": 0.8999999761581421,
+  "fonte_oni": "NOAA CPC, ONI v6, consultado 2026-09-16"
+}
