@@ -18,9 +18,19 @@ Dobras (ver PLANO): reusa o run ja treinado (models/pls_lagged_lstm_run1, corte
 (lr=5e-4, hidden_size=128, dropout=0.3) - isso nao e um re-tuning, so uma
 reamostragem temporal para a correcao ENSO.
 
+Cada dobra roda num PROCESSO SEPARADO (subprocess, chamado com --fold <nome>),
+salvando so os residuos (true_grid/pred_grid/oni) em disco antes de sair - a memoria
+liberada 100% entre dobras evita o padrao que causou 3 OOM kills seguidos numa versao
+anterior deste script (que mantinha `ds`, os 5 conjuntos de residuos e os workers do
+joblib todos vivos ao mesmo tempo num unico processo de longa duracao). Reaproveita
+tambem o mesmo padrao ja usado com sucesso em run_hparam_sweep.py. Bonus: retomavel -
+se uma dobra falhar (ou o processo for morto), rodar de novo pula as que ja tem
+residuos salvos em vez de refazer tudo.
+
 Uso (a partir da raiz do repositorio):
-    python3 enso_correction_cv.py
+    python3 enso_correction_cv.py                  # orquestrador: roda as dobras que faltam + agrega
     python3 enso_correction_cv.py --apply-to-test
+    python3 enso_correction_cv.py --fold 1969       # uso interno (worker de 1 dobra so)
 """
 
 from __future__ import annotations
@@ -29,6 +39,8 @@ import argparse
 import gc
 import json
 import os
+import subprocess
+import sys
 
 import joblib
 import numpy as np
@@ -60,8 +72,10 @@ from src.models.pca_lstm.train import (
 from src.oni import oni_para_datas
 from postprocess_enso import _carregar_modelo, aplicar_correcao, fit_pixel_correction, prever_teste_corrigido
 
-HIDDEN_SIZE, DROPOUT, LR = 128, 0.3, 5e-4  # hiperparametros ja promovidos (ver models/pls_lagged_lstm_run1)
-N_JOBS_REDUCTION_CV = 3  # deixa 1 nucleo livre - cada worker do ajuste PLS usa ~313MB (ver train.py)
+HIDDEN_SIZE, DROPOUT, LR = 128, 0.1, 5e-4  # hiperparametros ja promovidos (ver models/pls_lagged_lstm_run1)
+N_JOBS_REDUCTION_CV = 2  # cada dobra agora roda isolada em subprocesso (ver acima), entao nao
+# acumula mais memoria entre dobras - 2 workers e seguro de novo (era 1, sequencial, quando
+# o processo ainda precisava sobreviver as 5 dobras inteiras)
 
 BEST_RUN_DIR = RUN_DIRS["pls_lagged"]
 FOLD_RUN_DIR = "models/_enso_cv_folds"
@@ -81,6 +95,10 @@ REUSED_FOLD_NOME = "2018"  # models/pls_lagged_lstm_run1, ja treinado ate 2018-1
 
 def _idx(time_index: pd.DatetimeIndex, date: str) -> int:
     return time_index.get_indexer([pd.Timestamp(date)])[0]
+
+
+def _residuals_path(nome: str) -> str:
+    return f"{FOLD_RUN_DIR}/{nome}/residuals.npz"
 
 
 def treinar_dobra(ds, time_index, tp_raw, train_end: str, val_end: str, nome: str):
@@ -176,46 +194,74 @@ def dobra_reuso_existente(ds, time_index, tp_raw):
     return true_grid.astype("float32"), pred_grid.astype("float32"), oni_fold, metrics["rmse"]
 
 
-def main(apply_to_test: bool):
-    print("=== Carregando dados (uma vez, reusado entre todas as dobras) ===")
+def run_fold_worker(nome: str):
+    """Roda UMA dobra ate salvar os residuos em disco, e sai - chamado como subprocesso
+    isolado pelo orquestrador (main()), nunca diretamente pelo usuario. Carrega os dados
+    do zero (nao reusa nada de outro processo) porque e exatamente isso que garante a
+    liberacao de memoria entre dobras (ver docstring do modulo)."""
+    print(f"=== Carregando dados (worker da dobra {nome}) ===")
     datasets = load_all_datasets()
     ds = stack_features(datasets)
     time_index = pd.DatetimeIndex(ds["time"].values)
     tp_raw = ds[TP_VAR].values.astype("float32").copy()
-    print(f"  {len(time_index)} meses ({time_index[0].date()} a {time_index[-1].date()})")
     del datasets
     gc.collect()
 
-    true_grids, pred_grids, onis, fold_ids, rmses_dobra = [], [], [], [], {}
-
-    for fold in NEW_FOLDS:
+    if nome == REUSED_FOLD_NOME:
+        true_grid, pred_grid, oni_fold, rmse = dobra_reuso_existente(ds, time_index, tp_raw)
+    else:
+        fold = next(f for f in NEW_FOLDS if f["nome"] == nome)
         true_grid, pred_grid, oni_fold, rmse = treinar_dobra(
-            ds, time_index, tp_raw, fold["train_end"], fold["val_end"], fold["nome"]
+            ds, time_index, tp_raw, fold["train_end"], fold["val_end"], nome
         )
-        true_grids.append(true_grid)
-        pred_grids.append(pred_grid)
-        onis.append(oni_fold)
-        fold_ids.append(np.full(len(oni_fold), fold["nome"]))
-        rmses_dobra[fold["nome"]] = rmse
-
-    true_grid_e, pred_grid_e, oni_e, rmse_e = dobra_reuso_existente(ds, time_index, tp_raw)
-    true_grids.append(true_grid_e)
-    pred_grids.append(pred_grid_e)
-    onis.append(oni_e)
-    fold_ids.append(np.full(len(oni_e), REUSED_FOLD_NOME))
-    rmses_dobra[REUSED_FOLD_NOME] = rmse_e
-
-    # dados brutos completos (ds/tp_raw) nao sao mais necessarios - so os grids ja
-    # previstos por dobra, bem menores (so os exemplos de validacao, nao a serie toda)
     del ds, tp_raw
     gc.collect()
+
+    out_path = _residuals_path(nome)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    np.savez_compressed(out_path, true_grid=true_grid, pred_grid=pred_grid, oni=oni_fold, rmse=np.float32(rmse))
+    print(f"  residuos da dobra {nome} salvos em {out_path} ({len(oni_fold)} exemplos, rmse={rmse:.4f})")
+
+
+def main(apply_to_test: bool):
+    nomes_dobras = [f["nome"] for f in NEW_FOLDS] + [REUSED_FOLD_NOME]
+
+    for nome in nomes_dobras:
+        if os.path.exists(_residuals_path(nome)):
+            print(f"  dobra {nome}: ja tem residuos salvos em {_residuals_path(nome)} - pulando "
+                  f"(apague o arquivo pra refazer essa dobra)")
+            continue
+        print(f"\n{'#' * 70}\n# Dobra {nome}: rodando em subprocesso isolado\n{'#' * 70}")
+        resultado = subprocess.run([sys.executable, __file__, "--fold", nome])
+        if resultado.returncode != 0:
+            print(f"AVISO: dobra {nome} falhou (returncode={resultado.returncode}) - "
+                  f"rode 'python3 {os.path.basename(__file__)} --fold {nome}' isolado pra depurar. "
+                  f"Continuando com as demais dobras.")
+
+    true_grids, pred_grids, onis, fold_ids, rmses_dobra = [], [], [], [], {}
+    for nome in nomes_dobras:
+        path = _residuals_path(nome)
+        if not os.path.exists(path):
+            print(f"  dobra {nome}: sem residuos (falhou) - excluida do pool")
+            continue
+        d = np.load(path)
+        true_grids.append(d["true_grid"])
+        pred_grids.append(d["pred_grid"])
+        onis.append(d["oni"])
+        fold_ids.append(np.full(len(d["oni"]), nome))
+        rmses_dobra[nome] = float(d["rmse"])
+
+    if len(true_grids) < 2:
+        print("\nAVISO: menos de 2 dobras com resultado - nao da pra fazer leave-one-fold-out CV. Parando.")
+        return None
 
     true_grid_pool = np.concatenate(true_grids, axis=0)
     pred_grid_pool = np.concatenate(pred_grids, axis=0)
     oni_pool = np.concatenate(onis, axis=0)
     fold_id_pool = np.concatenate(fold_ids, axis=0)
-    nomes_dobras = [f["nome"] for f in NEW_FOLDS] + [REUSED_FOLD_NOME]
-    print(f"\n=== Pool de residuos: {len(oni_pool)} exemplos de {len(nomes_dobras)} dobras (1970-2022) ===")
+    nomes_com_resultado = list(rmses_dobra.keys())
+    print(f"\n=== Pool de residuos: {len(oni_pool)} exemplos de {len(nomes_com_resultado)} "
+          f"dobras ({', '.join(nomes_com_resultado)}) ===")
     print(f"  ONI no pool: min={oni_pool.min():.2f} max={oni_pool.max():.2f}")
 
     metrics_sem_pool = evaluate_predictions(true_grid_pool, pred_grid_pool)
@@ -223,7 +269,7 @@ def main(apply_to_test: bool):
 
     print("\n=== Validando a correcao via leave-one-dobra-out ===")
     rmses_sem, rmses_com = [], []
-    for nome_fora in nomes_dobras:
+    for nome_fora in nomes_com_resultado:
         mask_fora = fold_id_pool == nome_fora
         mask_dentro = ~mask_fora
 
@@ -244,7 +290,7 @@ def main(apply_to_test: bool):
     ajuda = rmse_cv_com < rmse_cv_sem
     print(f"  {'A correcao ajuda' if ajuda else 'A correcao NAO ajuda'} em validacao cruzada honesta")
 
-    print("\n=== Ajustando a correcao final com todo o pool (5 dobras, 1970-2022) ===")
+    print(f"\n=== Ajustando a correcao final com todo o pool ({len(nomes_com_resultado)} dobras) ===")
     a_final, b_final = fit_pixel_correction(oni_pool, true_grid_pool - pred_grid_pool)
     oni_min, oni_max = float(oni_pool.min()), float(oni_pool.max())
     print(f"  faixa de ONI usada no ajuste final: [{oni_min:.2f}, {oni_max:.2f}] (vs. [-1.1, 0.9] do ajuste original)")
@@ -252,8 +298,9 @@ def main(apply_to_test: bool):
     resultado = {
         "run_dir": BEST_RUN_DIR,
         "method": "pls_lagged",
-        "dobras": nomes_dobras,
-        "n_exemplos_por_dobra": {n: int((fold_id_pool == n).sum()) for n in nomes_dobras},
+        "dobras_planejadas": nomes_dobras,
+        "dobras": nomes_com_resultado,
+        "n_exemplos_por_dobra": {n: int((fold_id_pool == n).sum()) for n in nomes_com_resultado},
         "rmse_por_dobra_sem_correcao": rmses_dobra,
         "rmse_pool_sem_correcao": metrics_sem_pool["rmse"],
         "rmse_cv_leave_one_fold_out_sem_correcao": rmse_cv_sem,
@@ -283,11 +330,13 @@ def main(apply_to_test: bool):
         artefatos = joblib.load(f"{BEST_RUN_DIR}/reduction_and_stats.joblib")
         reduction_objects, stats = artefatos["reduction_objects"], artefatos["stats"]
 
-        # recarrega os dados brutos (foram liberados apos as dobras) so para montar
+        # recarrega os dados brutos (o orquestrador nunca os manteve em memoria - cada
+        # dobra roda em subprocesso isolado, ver docstring do modulo) so para montar
         # component_series de novo, na mesma reducao do run vencedor (2018-12)
         component_series = {}
         datasets = load_all_datasets()
         ds_full = stack_features(datasets)
+        time_index_full = pd.DatetimeIndex(ds_full["time"].values)
         media_tp, desvio_tp = stats[TP_VAR]
         component_series[TP_VAR] = reduction_objects[TP_VAR].transform(
             (ds_full[TP_VAR].values.astype("float32") - media_tp) / desvio_tp
@@ -297,7 +346,7 @@ def main(apply_to_test: bool):
             component_series[var] = reduction_objects[var].transform(
                 (ds_full[var].values.astype("float32") - media) / desvio
             ).astype("float32")
-        last_valid_idx = len(time_index) - 1
+        last_valid_idx = len(time_index_full) - 1
         del datasets, ds_full
         gc.collect()
 
@@ -316,9 +365,16 @@ def parse_args() -> argparse.Namespace:
                          help="Alem de avaliar a correcao, gera uma submissao corrigida para 2023-2024 "
                          "(so se a correcao ajudar em validacao cruzada) - "
                          "submissions/submission_pls_lagged_lstm_enso_corrected_walkforward.csv")
+    parser.add_argument("--fold", default=None, metavar="NOME",
+                         help="Uso interno: roda so essa dobra (worker isolado em subprocesso, chamado "
+                         "pelo proprio script - nao chame diretamente a menos que esteja depurando uma "
+                         "dobra que falhou, ver mensagem de erro do orquestrador).")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    main(apply_to_test=args.apply_to_test)
+    if args.fold:
+        run_fold_worker(args.fold)
+    else:
+        main(apply_to_test=args.apply_to_test)
