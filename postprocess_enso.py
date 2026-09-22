@@ -19,8 +19,8 @@ O ONI de cada mes-alvo, ao aplicar em 2023-2024, e limitado (clipado) a faixa ob
 no ajuste (2019-2022) - o pico de 2023-2024 (~+2.0) e bem mais alto que qualquer coisa
 vista na validacao (~+1.0 max), entao extrapolar sem limite seria arriscado.
 
-Fonte do ONI: NOAA CPC, ONI v6 (https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v6/),
-consultado em 2026-09-16. Meses janeiro/2018 a dezembro/2024.
+Tabela do ONI em src/oni.py (NOAA CPC, ONI v6, 1950-01 a 2024-12 - compartilhada com a
+feature de entrada opcional --use-oni-feature em src/models/pca_lstm/train.py).
 
 Uso:
     python3 postprocess_enso.py                              # usa RUN_DIRS["pls_lagged"] (melhor RMSE)
@@ -42,35 +42,25 @@ import torch
 import xarray as xr
 
 from src.baseline import climatology_baseline, persistence_baseline
-from src.data import ALL_VARS, FEATURE_VARS, TP_VAR, TRAIN_FILES, TRAIN_END, build_examples, load_all_datasets
+from src.data import (
+    ALL_VARS,
+    FEATURE_VARS,
+    HINDCAST_LEN,
+    LAGS,
+    TP_VAR,
+    TRAIN_FILES,
+    TRAIN_END,
+    build_examples,
+    load_all_datasets,
+)
 from src.evaluate import evaluate_predictions
 from src.models.pca_lstm import HindcastForecastLSTM
 from src.models.pca_lstm.train import RUN_DIRS, reconstruct_tp
+from src.oni import oni_para_datas
 from src.submit import build_submission
 from download_data import download_competition_data
 
 DEVICE = torch.device("cpu")
-
-# --- ONI mensal (NOAA CPC, ONI v6, consultado 2026-09-16) ---
-# cada linha e um ano, 12 valores na ordem DJF JFM FMA MAM AMJ MJJ JJA JAS ASO SON OND NDJ
-# (a temporada X centrada no mes X da mesma linha - ex. JFM 2018 = fevereiro/2018)
-_ONI_TABLE = {
-    2018: [-0.7, -0.7, -0.5, -0.3, -0.1, 0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.1],
-    2019: [1.0, 0.9, 0.9, 0.8, 0.7, 0.6, 0.4, 0.2, 0.3, 0.5, 0.7, 0.8],
-    2020: [0.7, 0.7, 0.6, 0.3, 0.0, -0.2, -0.3, -0.4, -0.8, -1.0, -1.1, -1.1],
-    2021: [-1.0, -0.9, -0.7, -0.6, -0.4, -0.3, -0.3, -0.5, -0.6, -0.8, -0.9, -0.8],
-    2022: [-0.8, -0.7, -0.8, -0.9, -0.8, -0.7, -0.7, -0.8, -0.9, -0.9, -0.8, -0.7],
-    2023: [-0.5, -0.3, -0.1, 0.2, 0.5, 0.7, 1.0, 1.3, 1.5, 1.7, 1.9, 2.0],
-    2024: [1.8, 1.5, 1.2, 0.8, 0.4, 0.2, 0.1, 0.0, -0.1, -0.2, -0.3, -0.4],
-}
-ONI_MONTHLY = {(ano, mes + 1): valor for ano, valores in _ONI_TABLE.items() for mes, valor in enumerate(valores)}
-
-
-def oni_para_datas(datas: pd.DatetimeIndex) -> np.ndarray:
-    faltando = [d for d in datas if (d.year, d.month) not in ONI_MONTHLY]
-    if faltando:
-        raise ValueError(f"ONI nao disponivel para: {faltando[:5]}... (tabela cobre 2018-01 a 2024-12)")
-    return np.array([ONI_MONTHLY[(d.year, d.month)] for d in datas], dtype="float32")
 
 
 def fit_pixel_correction(oni: np.ndarray, residuo: np.ndarray, granularity: str = "pixel") -> tuple[np.ndarray, np.ndarray]:
@@ -120,6 +110,77 @@ def _carregar_modelo(run_dir: str, checkpoint_nome: str, reduction_objects, stat
     modelo.load_state_dict(ckpt["model_state"])
     modelo.eval()
     return modelo
+
+
+def prever_teste_corrigido(
+    run_dir: str,
+    reduction_objects: dict,
+    stats: dict,
+    component_series: dict,
+    last_valid_idx: int,
+    a,
+    b,
+    oni_min: float,
+    oni_max: float,
+    output_path: str | None = None,
+):
+    """Gera a previsao corrigida do teste real (2023-2024) a partir de um Modelo A ja
+    retreinado com todo o historico (checkpoint_retrain_final.pt) e uma correcao ENSO
+    ja ajustada (a, b, oni_min/oni_max - ver fit_pixel_correction). Reusada tanto pelo
+    fluxo padrao (main(), ajuste so em 2019-2022) quanto pela CV walk-forward
+    (enso_correction_cv.py, ajuste pooled em varias decadas de residuos)."""
+    modelo_final = _carregar_modelo(run_dir, "checkpoint_retrain_final.pt", reduction_objects, stats)
+
+    datasets = load_all_datasets()
+    teste_ds = datasets["teste_features"]
+
+    origem_idx = last_valid_idx
+    hindcast_teste = np.concatenate(
+        [component_series[v][origem_idx - HINDCAST_LEN + 1 : origem_idx + 1] for v in ALL_VARS], axis=1
+    )
+    tp_congelado_teste = component_series[TP_VAR][origem_idx]
+    n_meses_teste = teste_ds.sizes["time"]
+
+    atm_teste_list = []
+    for var in FEATURE_VARS:
+        media, desvio = stats[var]
+        bruto = teste_ds[var].values.astype("float32")
+        normalizado = (bruto - media) / desvio
+        atm_teste_list.append(reduction_objects[var].transform(normalizado))
+    atm_teste = np.concatenate(atm_teste_list, axis=1).astype("float32")
+
+    hindcast_batch = np.repeat(hindcast_teste[None, :, :], n_meses_teste, axis=0)
+    tp_congelado_batch = np.repeat(tp_congelado_teste[None, :], n_meses_teste, axis=0)
+    lag_batch = (teste_ds["lag_meses"].values / max(LAGS)).astype("float32")
+
+    with torch.no_grad():
+        pred_pca_teste = modelo_final(
+            torch.from_numpy(hindcast_batch), torch.from_numpy(atm_teste),
+            torch.from_numpy(tp_congelado_batch), torch.from_numpy(lag_batch),
+        ).numpy()
+    pred_grid_teste_bruto = reconstruct_tp(reduction_objects[TP_VAR], stats[TP_VAR], pred_pca_teste)
+    pred_grid_teste_bruto = np.clip(pred_grid_teste_bruto, 0, None)
+
+    datas_teste = pd.DatetimeIndex(teste_ds["time"].values)
+    oni_teste = oni_para_datas(datas_teste)
+    print(f"  ONI no teste: min={oni_teste.min():.2f} max={oni_teste.max():.2f} "
+          f"(clipado para [{oni_min:.2f}, {oni_max:.2f}] antes de aplicar)")
+
+    pred_grid_teste_corrigido = aplicar_correcao(pred_grid_teste_bruto, oni_teste, a, b, oni_min, oni_max)
+
+    predictions_da = xr.DataArray(
+        pred_grid_teste_corrigido, dims=("time", "lat", "lon"),
+        coords={"time": teste_ds["time"].values, "lat": teste_ds["lat"].values, "lon": teste_ds["lon"].values},
+    )
+    os.makedirs("submissions", exist_ok=True)
+    competition_path = download_competition_data()
+    sample_path = os.path.join(competition_path, "sample_submission.csv")
+    if output_path is None:
+        run_tag = os.path.basename(os.path.normpath(run_dir)).replace("_run1", "")
+        output_path = f"submissions/submission_{run_tag}_enso_corrected.csv"
+    submission_df = build_submission(predictions_da, sample_path, output_path)
+    print(f"  salvo em {output_path} ({len(submission_df)} linhas)")
+    return submission_df
 
 
 def main(run_dir: str, apply_to_test: bool, granularity: str = "pixel"):
@@ -235,58 +296,10 @@ def main(run_dir: str, apply_to_test: bool, granularity: str = "pixel"):
 
     if apply_to_test:
         print("\n=== Aplicando a correcao na previsao real do teste (2023-2024) ===")
-        modelo_final = _carregar_modelo(run_dir, "checkpoint_retrain_final.pt", reduction_objects, stats)
-
-        datasets = load_all_datasets()
-        teste_ds = datasets["teste_features"]
-
-        HINDCAST_LEN = 12
-        LAGS_MAX = 24
-        origem_idx = last_valid_idx
-        hindcast_teste = np.concatenate(
-            [component_series[v][origem_idx - HINDCAST_LEN + 1: origem_idx + 1] for v in ALL_VARS], axis=1
+        prever_teste_corrigido(
+            run_dir, reduction_objects, stats, component_series, last_valid_idx,
+            a_final, b_final, oni_min, oni_max,
         )
-        tp_congelado_teste = component_series[TP_VAR][origem_idx]
-        n_meses_teste = teste_ds.sizes["time"]
-
-        atm_teste_list = []
-        for var in FEATURE_VARS:
-            media, desvio = stats[var]
-            bruto = teste_ds[var].values.astype("float32")
-            normalizado = (bruto - media) / desvio
-            atm_teste_list.append(reduction_objects[var].transform(normalizado))
-        atm_teste = np.concatenate(atm_teste_list, axis=1).astype("float32")
-
-        hindcast_batch = np.repeat(hindcast_teste[None, :, :], n_meses_teste, axis=0)
-        tp_congelado_batch = np.repeat(tp_congelado_teste[None, :], n_meses_teste, axis=0)
-        lag_batch = (teste_ds["lag_meses"].values / LAGS_MAX).astype("float32")
-
-        with torch.no_grad():
-            pred_pca_teste = modelo_final(
-                torch.from_numpy(hindcast_batch), torch.from_numpy(atm_teste),
-                torch.from_numpy(tp_congelado_batch), torch.from_numpy(lag_batch),
-            ).numpy()
-        pred_grid_teste_bruto = reconstruct_tp(reduction_objects[TP_VAR], stats[TP_VAR], pred_pca_teste)
-        pred_grid_teste_bruto = np.clip(pred_grid_teste_bruto, 0, None)
-
-        datas_teste = pd.DatetimeIndex(teste_ds["time"].values)
-        oni_teste = oni_para_datas(datas_teste)
-        print(f"  ONI no teste: min={oni_teste.min():.2f} max={oni_teste.max():.2f} "
-              f"(clipado para [{oni_min:.2f}, {oni_max:.2f}] antes de aplicar - fora da faixa vista no ajuste)")
-
-        pred_grid_teste_corrigido = aplicar_correcao(pred_grid_teste_bruto, oni_teste, a_final, b_final, oni_min, oni_max)
-
-        predictions_da = xr.DataArray(
-            pred_grid_teste_corrigido, dims=("time", "lat", "lon"),
-            coords={"time": teste_ds["time"].values, "lat": teste_ds["lat"].values, "lon": teste_ds["lon"].values},
-        )
-        os.makedirs("submissions", exist_ok=True)
-        competition_path = download_competition_data()
-        sample_path = os.path.join(competition_path, "sample_submission.csv")
-        run_tag = os.path.basename(os.path.normpath(run_dir)).replace("_run1", "")
-        output_path = f"submissions/submission_{run_tag}_enso_corrected.csv"
-        submission_df = build_submission(predictions_da, sample_path, output_path)
-        print(f"  salvo em {output_path} ({len(submission_df)} linhas)")
 
     return resultado
 

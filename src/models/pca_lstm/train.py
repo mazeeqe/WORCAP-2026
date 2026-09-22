@@ -16,6 +16,11 @@ Uso (a partir da raiz do repositorio):
         # mesmo --reduction (e --pls-lag-shift), incluindo entre hiperparametros
         # diferentes do LSTM (ver run_hparam_sweep.py), enquanto os .nc de treino e os
         # parametros de reducao nao mudarem (ver load_or_fit_reduction)
+    python3 -m src.models.pca_lstm.train --reduction pls_lagged --use-oni-feature \
+        --run-dir models/pls_lagged_oni_lstm_run1
+        # acrescenta o indice ONI (src/oni.py) como input do decoder do LSTM (mes
+        # alvo-1), em vez de so corrigir o resultado depois (ver postprocess_enso.py) -
+        # use --run-dir para nao sobrescrever o run sem essa feature
 
 Passos:
     1. Carrega os dados de treino (.nc, cache local do kagglehub) e do teste real.
@@ -71,15 +76,23 @@ from src.data import (
 )
 from src.evaluate import evaluate_predictions
 from src.models.pca_lstm import HindcastForecastLSTM, SpatialPCA, SpatialPLS
+from src.oni import oni_para_datas, oni_series_or_nan
 from src.submit import build_submission
 
 VARIANCE_THRESHOLD = 0.90  # criterio de contribuicao minima: mantem o menor n_components que atinja isso
-PCA_MAX_COMPONENTS = 200  # teto de busca para SpatialPCA (barato: SVD randomizada, nao iterativo)
+# PCA_MAX_COMPONENTS e PLS_MAX_COMPONENTS reduzidos (200->40, 30->15 - ver conversa) depois de
+# observar que, com os tetos antigos, tp sozinho chegava a 85 componentes pra bater 90% de
+# variancia e 6 das 9 variaveis atmosfericas batiam no teto de 30 sem sequer atingir 90% - alta
+# dimensionalidade total (~337 features de hindcast) que provavelmente prejudicava a generalizacao
+# (o modelo promovido dava early stopping ja na epoca 1-2) alem de deixar o fit do PLS bem mais
+# lento. Tetos menores tambem deixam mais folga pra somar novas variaveis atmosfericas no futuro
+# sem a dimensionalidade total explodir ainda mais.
+PCA_MAX_COMPONENTS = 40  # teto de busca para SpatialPCA (barato: SVD randomizada, nao iterativo)
 # Teto de busca (binaria) e max_iter por fit para SpatialPLS - mantidos baixos porque o alvo Y (os
-# componentes de tp) agora tem ate ~85 colunas (criterio de 90% aplicado tambem ao tp), o que deixa
-# cada fit do PLS bem mais caro que antes (Y multi-coluna exige mais iteracoes do NIPALS para
+# componentes de tp) e multi-coluna (agora ate 40, com o teto do PCA acima), o que deixa cada fit
+# do PLS bem mais caro que um alvo escalar (Y multi-coluna exige mais iteracoes do NIPALS para
 # convergir); um teto de 100 chegou a deixar um unico fit rodando por horas - ver conversa.
-PLS_MAX_COMPONENTS = 30
+PLS_MAX_COMPONENTS = 15
 PLS_MAX_ITER = 100
 # Paralelismo do ajuste das variaveis atmosfericas (Passo 2): -1 = usa todos os nucleos
 # disponiveis (convencao do joblib). Cada worker e um PROCESSO separado (nao thread) -
@@ -339,15 +352,31 @@ def fit_reduction_per_variable(
     return reduction_objects, component_series
 
 
-def make_loader(hindcast, alvo_atm, tp_congelado, lag, y, batch_size, shuffle):
-    dataset = TensorDataset(
+def make_loader(hindcast, alvo_atm, tp_congelado, lag, y, batch_size, shuffle, oni=None):
+    tensors = [
         torch.from_numpy(hindcast),
         torch.from_numpy(alvo_atm),
         torch.from_numpy(tp_congelado),
         torch.from_numpy(lag),
         torch.from_numpy(y),
-    )
+    ]
+    if oni is not None:
+        tensors.append(torch.from_numpy(oni))
+    dataset = TensorDataset(*tensors)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+
+def _unpack_batch(batch, n_oni_features: int, device: torch.device):
+    """Desempacota um batch do DataLoader (5 tensores, ou 6 se `--use-oni-feature`
+    - ver make_loader) e move tudo para `device`. `oni` volta None quando
+    n_oni_features == 0 (repassado direto para HindcastForecastLSTM.forward)."""
+    if n_oni_features > 0:
+        hindcast, alvo_atm, tp_congelado, lag, y, oni = batch
+        oni = oni.to(device)
+    else:
+        hindcast, alvo_atm, tp_congelado, lag, y = batch
+        oni = None
+    return hindcast.to(device), alvo_atm.to(device), tp_congelado.to(device), lag.to(device), y.to(device), oni
 
 
 def train_model(
@@ -362,6 +391,7 @@ def train_model(
     hidden_size=HIDDEN_SIZE,
     dropout=DROPOUT,
     lr=LR,
+    n_oni_features=0,
 ):
     model = HindcastForecastLSTM(
         n_features_hindcast=n_features_hindcast,
@@ -369,6 +399,7 @@ def train_model(
         n_components_tp=n_components_tp,
         hidden_size=hidden_size,
         dropout=dropout,
+        n_oni_features=n_oni_features,
     ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
@@ -383,12 +414,11 @@ def train_model(
         model.train()
         train_loss = 0.0
         n_train = 0
-        for hindcast, alvo_atm, tp_congelado, lag, y in train_loader:
-            hindcast, alvo_atm = hindcast.to(DEVICE), alvo_atm.to(DEVICE)
-            tp_congelado, lag, y = tp_congelado.to(DEVICE), lag.to(DEVICE), y.to(DEVICE)
+        for batch in train_loader:
+            hindcast, alvo_atm, tp_congelado, lag, y, oni = _unpack_batch(batch, n_oni_features, DEVICE)
 
             optimizer.zero_grad()
-            pred = model(hindcast, alvo_atm, tp_congelado, lag)
+            pred = model(hindcast, alvo_atm, tp_congelado, lag, oni=oni)
             loss = criterion(pred, y)
             loss.backward()
             optimizer.step()
@@ -401,10 +431,9 @@ def train_model(
         val_loss = 0.0
         n_val = 0
         with torch.no_grad():
-            for hindcast, alvo_atm, tp_congelado, lag, y in val_loader:
-                hindcast, alvo_atm = hindcast.to(DEVICE), alvo_atm.to(DEVICE)
-                tp_congelado, lag, y = tp_congelado.to(DEVICE), lag.to(DEVICE), y.to(DEVICE)
-                pred = model(hindcast, alvo_atm, tp_congelado, lag)
+            for batch in val_loader:
+                hindcast, alvo_atm, tp_congelado, lag, y, oni = _unpack_batch(batch, n_oni_features, DEVICE)
+                pred = model(hindcast, alvo_atm, tp_congelado, lag, oni=oni)
                 loss = criterion(pred, y)
                 val_loss += loss.item() * hindcast.size(0)
                 n_val += hindcast.size(0)
@@ -441,6 +470,25 @@ def train_model(
             break
 
     model.load_state_dict(best_state)
+    # O loop acima sobrescreve checkpoint_selecao_epocas.pt a cada epoca com os pesos
+    # ATUAIS (so um backup de recuperacao contra crash - ver comentario acima), entao ao
+    # sair do loop o arquivo em disco tem os pesos da ULTIMA epoca rodada (epoch), nao da
+    # melhor (best_epoch) - a unica coisa que recebe best_state e o objeto `model` em
+    # memoria, via load_state_dict logo acima. Sem este save final, qualquer script que
+    # carregue checkpoint_selecao_epocas.pt depois do treino (postprocess_enso.py,
+    # enso_correction_cv.py) avalia a epoca errada - ver conversa (RMSE deu 1.8548 em vez
+    # de 1.8405 no checkpoint promovido, porque carregava a epoca 8 em vez da 3).
+    torch.save(
+        {
+            "epoch": best_epoch,
+            "model_state": best_state,
+            "optimizer_state": optimizer.state_dict(),
+            "best_val_loss": best_val_loss,
+            "best_epoch": best_epoch,
+            "epochs_sem_melhora": epochs_sem_melhora,
+        },
+        f"{run_dir}/checkpoint_selecao_epocas.pt",
+    )
     return model, best_epoch, best_val_loss, history
 
 
@@ -460,6 +508,7 @@ def main(
     n_jobs: int = N_JOBS_REDUCTION,
     seed: int = SEED,
     force_refit: bool = False,
+    use_oni_feature: bool = False,
 ):
     """Ponto de entrada publico: prepara a pasta do run e loga tudo (console + arquivo)
     em `{run_dir}/train.log`, alem de delegar o treino de fato para `_train`.
@@ -473,7 +522,12 @@ def main(
     diferente mesmo com os mesmos dados/hiperparametros). `force_refit` ignora o
     cache do ajuste de reducao (ver load_or_fit_reduction/REDUCTION_CACHE_DIR) -
     use se os dados de treino mudaram sem que o mtime dos .nc tenha mudado (ex.:
-    substituicao manual preservando timestamp) ou para depurar o proprio cache."""
+    substituicao manual preservando timestamp) ou para depurar o proprio cache.
+    `use_oni_feature` acrescenta o indice ONI (ver src/oni.py) como input do decoder
+    (mes alvo-1, mesmo alinhamento de `alvo_atm`) - testa a hipotese de que dar ENSO
+    como entrada real supera so corrigir o resultado depois (ver postprocess_enso.py).
+    Origens de treino antes de 1950 (sem ONI publicado) sao descartadas nesse modo -
+    ver src.data.build_examples."""
     assert method in REDUCTION_METHODS, f"method invalido: {method} (esperado um de {REDUCTION_METHODS})"
     run_dir = run_dir or RUN_DIRS[method]
     os.makedirs(run_dir, exist_ok=True)
@@ -481,7 +535,9 @@ def main(
     log_path = f"{run_dir}/train.log"
     with open(log_path, "a") as log_file, contextlib.redirect_stdout(_Tee(sys.stdout, log_file)):
         print(f"\n{'=' * 70}\nnova execucao ({method}) em {pd.Timestamp.now()}\n{'=' * 70}")
-        return _train(method, pls_lag_shift, run_dir, hidden_size, dropout, lr, n_jobs, seed, force_refit)
+        return _train(
+            method, pls_lag_shift, run_dir, hidden_size, dropout, lr, n_jobs, seed, force_refit, use_oni_feature
+        )
 
 
 def _train(
@@ -494,6 +550,7 @@ def _train(
     n_jobs: int = N_JOBS_REDUCTION,
     seed: int = SEED,
     force_refit: bool = False,
+    use_oni_feature: bool = False,
 ):
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -504,9 +561,11 @@ def _train(
         "pls_lagged": "PLS(defasado)+LSTM",
     }[method]
 
+    n_oni_features = 1 if use_oni_feature else 0
     print(
         f"=== 0. Metodo de reducao dimensional: {method} | seed: {seed} | "
-        f"hiperparametros: hidden_size={hidden_size} dropout={dropout} lr={lr} ==="
+        f"hiperparametros: hidden_size={hidden_size} dropout={dropout} lr={lr} | "
+        f"use_oni_feature={use_oni_feature} ==="
     )
 
     print("=== 1. Carregando dados ===")
@@ -518,6 +577,11 @@ def _train(
     print(f"  {len(time_index)} meses ({time_index[0].date()} a {time_index[-1].date()})")
     print(f"  origens de treino interno ate indice {train_end_idx} ({time_index[train_end_idx].date()})")
     print(f"  origens de validacao interna ate indice {last_valid_idx} ({time_index[last_valid_idx].date()})")
+
+    oni_full = oni_series_or_nan(time_index) if use_oni_feature else None
+    if use_oni_feature:
+        n_sem_oni = int(np.isnan(oni_full).sum())
+        print(f"  ONI: {n_sem_oni} meses sem indice disponivel (antes de 1950-01) - origens nesses meses serao descartadas")
 
     stats = compute_normalization_stats(ds, train_end=TRAIN_END)
 
@@ -544,14 +608,21 @@ def _train(
     gc.collect()
 
     print("\n=== 3. Montando exemplos (contrato origem + lag) ===")
-    train_ex = build_examples(component_series, 0, train_end_idx, last_valid_idx=train_end_idx)
-    val_ex = build_examples(component_series, train_end_idx + 1, last_valid_idx, last_valid_idx=last_valid_idx)
-    hindcast_tr, atm_tr, tp_froz_tr, lag_tr, y_tr, origin_tr, alvo_tr = train_ex
-    hindcast_va, atm_va, tp_froz_va, lag_va, y_va, origin_va, alvo_va = val_ex
+    train_ex = build_examples(component_series, 0, train_end_idx, last_valid_idx=train_end_idx, oni_series=oni_full)
+    val_ex = build_examples(
+        component_series, train_end_idx + 1, last_valid_idx, last_valid_idx=last_valid_idx, oni_series=oni_full
+    )
+    if use_oni_feature:
+        hindcast_tr, atm_tr, tp_froz_tr, lag_tr, y_tr, origin_tr, alvo_tr, oni_tr = train_ex
+        hindcast_va, atm_va, tp_froz_va, lag_va, y_va, origin_va, alvo_va, oni_va = val_ex
+    else:
+        hindcast_tr, atm_tr, tp_froz_tr, lag_tr, y_tr, origin_tr, alvo_tr = train_ex
+        hindcast_va, atm_va, tp_froz_va, lag_va, y_va, origin_va, alvo_va = val_ex
+        oni_tr = oni_va = None
     print(f"  treino: {len(y_tr)} exemplos | validacao: {len(y_va)} exemplos")
 
-    train_loader = make_loader(hindcast_tr, atm_tr, tp_froz_tr, lag_tr, y_tr, BATCH_SIZE, shuffle=True)
-    val_loader = make_loader(hindcast_va, atm_va, tp_froz_va, lag_va, y_va, BATCH_SIZE, shuffle=False)
+    train_loader = make_loader(hindcast_tr, atm_tr, tp_froz_tr, lag_tr, y_tr, BATCH_SIZE, shuffle=True, oni=oni_tr)
+    val_loader = make_loader(hindcast_va, atm_va, tp_froz_va, lag_va, y_va, BATCH_SIZE, shuffle=False, oni=oni_va)
 
     print("\n=== 4. Treinando (selecao de epocas via validacao interna) ===")
     t0 = time.time()
@@ -567,6 +638,7 @@ def _train(
         hidden_size=hidden_size,
         dropout=dropout,
         lr=lr,
+        n_oni_features=n_oni_features,
     )
     print(f"  treino concluido em {time.time() - t0:.0f}s | melhor epoca: {best_epoch} | val MSE(pca): {best_val_loss:.4f}")
 
@@ -578,6 +650,7 @@ def _train(
             torch.from_numpy(atm_va).to(DEVICE),
             torch.from_numpy(tp_froz_va).to(DEVICE),
             torch.from_numpy(lag_va).to(DEVICE),
+            oni=torch.from_numpy(oni_va).to(DEVICE) if use_oni_feature else None,
         ).cpu().numpy()
 
     pred_grid = reconstruct_tp(reduction_objects[TP_VAR], stats[TP_VAR], pred_pca_va)
@@ -604,7 +677,12 @@ def _train(
         json.dump(
             {
                 "reduction_method": method,
-                "hyperparams": {"hidden_size": hidden_size, "dropout": dropout, "lr": lr},
+                "hyperparams": {
+                    "hidden_size": hidden_size,
+                    "dropout": dropout,
+                    "lr": lr,
+                    "use_oni_feature": use_oni_feature,
+                },
                 "best_epoch": best_epoch,
                 "best_val_loss_pca": best_val_loss,
                 "modelo": metrics_model,
@@ -631,9 +709,15 @@ def _train(
     print(f"  history.csv, metrics.json e sample_grids.npz salvos em {run_dir}/")
 
     print("\n=== 6. Retreinando com todo o historico rotulado (1940-2022) ===")
-    full_ex = build_examples(component_series, 0, last_valid_idx, last_valid_idx=last_valid_idx)
-    hindcast_full, atm_full, tp_froz_full, lag_full, y_full, _, _ = full_ex
-    full_loader = make_loader(hindcast_full, atm_full, tp_froz_full, lag_full, y_full, BATCH_SIZE, shuffle=True)
+    full_ex = build_examples(component_series, 0, last_valid_idx, last_valid_idx=last_valid_idx, oni_series=oni_full)
+    if use_oni_feature:
+        hindcast_full, atm_full, tp_froz_full, lag_full, y_full, _, _, oni_full_ex = full_ex
+    else:
+        hindcast_full, atm_full, tp_froz_full, lag_full, y_full, _, _ = full_ex
+        oni_full_ex = None
+    full_loader = make_loader(
+        hindcast_full, atm_full, tp_froz_full, lag_full, y_full, BATCH_SIZE, shuffle=True, oni=oni_full_ex
+    )
 
     final_model = HindcastForecastLSTM(
         n_features_hindcast=n_features_hindcast,
@@ -641,6 +725,7 @@ def _train(
         n_components_tp=n_components_tp,
         hidden_size=hidden_size,
         dropout=dropout,
+        n_oni_features=n_oni_features,
     ).to(DEVICE)
     optimizer = torch.optim.Adam(final_model.parameters(), lr=lr)
     criterion = nn.MSELoss()
@@ -648,11 +733,10 @@ def _train(
     for epoch in range(1, best_epoch + 1):
         final_model.train()
         epoch_loss, n_seen = 0.0, 0
-        for hindcast, alvo_atm, tp_congelado, lag, y in full_loader:
-            hindcast, alvo_atm = hindcast.to(DEVICE), alvo_atm.to(DEVICE)
-            tp_congelado, lag, y = tp_congelado.to(DEVICE), lag.to(DEVICE), y.to(DEVICE)
+        for batch in full_loader:
+            hindcast, alvo_atm, tp_congelado, lag, y, oni = _unpack_batch(batch, n_oni_features, DEVICE)
             optimizer.zero_grad()
-            pred = final_model(hindcast, alvo_atm, tp_congelado, lag)
+            pred = final_model(hindcast, alvo_atm, tp_congelado, lag, oni=oni)
             loss = criterion(pred, y)
             loss.backward()
             optimizer.step()
@@ -675,7 +759,12 @@ def _train(
 
     torch.save(final_model.state_dict(), f"{run_dir}/model_final.pt")
     joblib.dump(
-        {"reduction_objects": reduction_objects, "method": method, "stats": stats},
+        {
+            "reduction_objects": reduction_objects,
+            "method": method,
+            "stats": stats,
+            "n_oni_features": n_oni_features,
+        },
         f"{run_dir}/reduction_and_stats.joblib",
     )
     print(f"  modelo final e objetos de reducao salvos em {run_dir}/")
@@ -702,6 +791,15 @@ def _train(
     tp_congelado_batch = np.repeat(tp_congelado_teste[None, :], n_meses_teste, axis=0)
     lag_batch = (teste_ds["lag_meses"].values / max(LAGS)).astype("float32")
 
+    oni_teste_batch = None
+    if use_oni_feature:
+        # mesmo alinhamento anti-vazamento do treino (feature_idx = alvo_idx - 1):
+        # ONI do mes anterior a cada mes-alvo do teste. oni_para_datas (nao
+        # oni_series_or_nan) porque 2023-2024 esta sempre dentro da cobertura da
+        # tabela (1950-2024) - falta aqui seria um bug, nao um caso esperado.
+        datas_alvo_teste = pd.DatetimeIndex(teste_ds["time"].values) - pd.DateOffset(months=1)
+        oni_teste_batch = oni_para_datas(datas_alvo_teste).reshape(-1, 1)
+
     final_model.eval()
     with torch.no_grad():
         pred_pca_teste = final_model(
@@ -709,6 +807,7 @@ def _train(
             torch.from_numpy(atm_teste).to(DEVICE),
             torch.from_numpy(tp_congelado_batch).to(DEVICE),
             torch.from_numpy(lag_batch).to(DEVICE),
+            oni=torch.from_numpy(oni_teste_batch).to(DEVICE) if use_oni_feature else None,
         ).cpu().numpy()
 
     pred_grid_teste = reconstruct_tp(reduction_objects[TP_VAR], stats[TP_VAR], pred_pca_teste)
@@ -786,6 +885,15 @@ def parse_args() -> argparse.Namespace:
         help="Ignora o cache do ajuste de reducao (ver REDUCTION_CACHE_DIR) e reajusta o "
         "PCA/PLS do zero mesmo se ja houver um cache valido para esse metodo/pls-lag-shift.",
     )
+    parser.add_argument(
+        "--use-oni-feature",
+        action="store_true",
+        help="Acrescenta o indice ONI (ver src/oni.py) como input do decoder do LSTM, "
+        "alinhado como as demais variaveis atmosfericas (mes alvo-1). Testa dar ENSO "
+        "como entrada real do modelo em vez de so corrigir o resultado depois (ver "
+        "postprocess_enso.py). Origens de treino antes de 1950 (sem ONI publicado) "
+        "sao descartadas.",
+    )
     return parser.parse_args()
 
 
@@ -801,4 +909,5 @@ if __name__ == "__main__":
         n_jobs=args.n_jobs,
         seed=args.seed,
         force_refit=args.force_refit,
+        use_oni_feature=args.use_oni_feature,
     )

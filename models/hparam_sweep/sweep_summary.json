@@ -7,9 +7,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p0005_hs64_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 289.0,
-    "rmse": 1.8667471408843994,
-    "mae": 1.1342717409133911
+    "duracao_s": 212.4,
+    "rmse": 1.8543176651000977,
+    "mae": 1.1237839460372925
   },
   {
     "method": "pls_lagged",
@@ -19,9 +19,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p0005_hs64_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 655.0,
-    "rmse": 1.8717888593673706,
-    "mae": 1.1397016048431396
+    "duracao_s": 312.9,
+    "rmse": 1.8672852516174316,
+    "mae": 1.1343326568603516
   },
   {
     "method": "pls_lagged",
@@ -31,9 +31,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p0005_hs128_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 418.5,
-    "rmse": 1.8515918254852295,
-    "mae": 1.1235687732696533
+    "duracao_s": 279.5,
+    "rmse": 1.8404556512832642,
+    "mae": 1.112440586090088
   },
   {
     "method": "pls_lagged",
@@ -43,9 +43,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p0005_hs128_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 415.2,
-    "rmse": 1.8504669666290283,
-    "mae": 1.1243417263031006
+    "duracao_s": 259.9,
+    "rmse": 1.8440260887145996,
+    "mae": 1.1159101724624634
   },
   {
     "method": "pls_lagged",
@@ -55,9 +55,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p0005_hs256_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 343.6,
-    "rmse": 1.8541531562805176,
-    "mae": 1.1240509748458862
+    "duracao_s": 324.2,
+    "rmse": 1.8600921630859375,
+    "mae": 1.1228731870651245
   },
   {
     "method": "pls_lagged",
@@ -67,9 +67,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p0005_hs256_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 353.9,
-    "rmse": 1.8540815114974976,
-    "mae": 1.1264190673828125
+    "duracao_s": 313.2,
+    "rmse": 1.8590410947799683,
+    "mae": 1.1214723587036133
   },
   {
     "method": "pls_lagged",
@@ -79,9 +79,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p001_hs64_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 309.4,
-    "rmse": 1.8595091104507446,
-    "mae": 1.1295288801193237
+    "duracao_s": 193.2,
+    "rmse": 1.858175277709961,
+    "mae": 1.1261827945709229
   },
   {
     "method": "pls_lagged",
@@ -91,9 +91,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p001_hs64_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 335.5,
-    "rmse": 1.8659553527832031,
-    "mae": 1.1336501836776733
+    "duracao_s": 187.9,
+    "rmse": 1.8658027648925781,
+    "mae": 1.1334539651870728
   },
   {
     "method": "pls_lagged",
@@ -103,9 +103,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p001_hs128_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 526.3,
-    "rmse": 1.859170913696289,
-    "mae": 1.1297000646591187
+    "duracao_s": 332.0,
+    "rmse": 1.850954294204712,
+    "mae": 1.1187748908996582
   },
   {
     "method": "pls_lagged",
@@ -115,9 +115,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p001_hs128_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 526.5,
-    "rmse": 1.8580347299575806,
-    "mae": 1.1291494369506836
+    "duracao_s": 318.8,
+    "rmse": 1.846736192703247,
+    "mae": 1.119200587272644
   },
   {
     "method": "pls_lagged",
@@ -127,9 +127,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p001_hs256_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 528.7,
-    "rmse": 1.874733567237854,
-    "mae": 1.1388880014419556
+    "duracao_s": 389.7,
+    "rmse": 1.855094313621521,
+    "mae": 1.126619815826416
   },
   {
     "method": "pls_lagged",
@@ -139,9 +139,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p001_hs256_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 533.9,
-    "rmse": 1.8663140535354614,
-    "mae": 1.131037950515747
+    "duracao_s": 412.5,
+    "rmse": 1.857021450996399,
+    "mae": 1.1259198188781738
   },
   {
     "method": "pls_lagged",
@@ -151,9 +151,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p002_hs64_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 190.6,
-    "rmse": 1.883065104484558,
-    "mae": 1.147110939025879
+    "duracao_s": 174.2,
+    "rmse": 1.8626173734664917,
+    "mae": 1.1293220520019531
   },
   {
     "method": "pls_lagged",
@@ -163,9 +163,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p002_hs64_do0p3",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 189.3,
-    "rmse": 1.8748576641082764,
-    "mae": 1.140429139137268
+    "duracao_s": 245.6,
+    "rmse": 1.8724111318588257,
+    "mae": 1.1359213590621948
   },
   {
     "method": "pls_lagged",
@@ -175,9 +175,9 @@
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p002_hs128_do0p1",
     "status": "ok",
     "returncode": 0,
-    "duracao_s": 303.2,
-    "rmse": 1.8770475387573242,
-    "mae": 1.1436145305633545
+    "duracao_s": 352.2,
+    "rmse": 1.8598259687423706,
+    "mae": 1.118480920791626
   },
   {
     "method": "pls_lagged",
@@ -186,8 +186,10 @@
     "dropout": 0.3,
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p002_hs128_do0p3",
     "status": "ok",
-    "rmse": 1.8734937906265259,
-    "mae": 1.1399240493774414
+    "returncode": 0,
+    "duracao_s": 338.4,
+    "rmse": 1.8661959171295166,
+    "mae": 1.1238651275634766
   },
   {
     "method": "pls_lagged",
@@ -195,7 +197,11 @@
     "hidden_size": 256,
     "dropout": 0.1,
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p002_hs256_do0p1",
-    "status": "nao executado (kill por pouca memoria, repetidas tentativas)"
+    "status": "ok",
+    "returncode": 0,
+    "duracao_s": 595.1,
+    "rmse": 1.8571854829788208,
+    "mae": 1.1315191984176636
   },
   {
     "method": "pls_lagged",
@@ -203,6 +209,10 @@
     "hidden_size": 256,
     "dropout": 0.3,
     "run_dir": "models/hparam_sweep/pls_lagged_lr0p002_hs256_do0p3",
-    "status": "nao executado (kill por pouca memoria, repetidas tentativas)"
+    "status": "ok",
+    "returncode": 0,
+    "duracao_s": 489.5,
+    "rmse": 1.8578579425811768,
+    "mae": 1.1334298849105835
   }
 ]

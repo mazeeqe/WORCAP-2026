@@ -1,0 +1,107 @@
+
+======================================================================
+nova execucao (pls_lagged) em 2026-09-20 13:13:17.071642
+======================================================================
+=== 0. Metodo de reducao dimensional: pls_lagged | seed: 42 | hiperparametros: hidden_size=128 dropout=0.3 lr=0.0005 | use_oni_feature=False ===
+=== 1. Carregando dados ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pls_lagged, so no treino interno) ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  cache de reducao em models/_reduction_cache/pls_lagged_shift1.joblib invalido (config diferente; calculado em 2026-09-16T22:41:07.476219 (backfill de execucao anterior)) - recalculando
+    aviso: nao atingiu 90% de variancia mesmo com max_components=40 (alcancado: 84.9%); usando 40 componentes
+  PCA[tp] (referencia): 40 componentes explicam 84.9% da variancia (treino interno)
+
+======================================================================
+nova execucao (pls_lagged) em 2026-09-20 13:19:12.183064
+======================================================================
+=== 0. Metodo de reducao dimensional: pls_lagged | seed: 42 | hiperparametros: hidden_size=128 dropout=0.3 lr=0.0005 | use_oni_feature=False ===
+=== 1. Carregando dados ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pls_lagged, so no treino interno) ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  cache de reducao em models/_reduction_cache/pls_lagged_shift1.joblib invalido (config diferente; calculado em 2026-09-16T22:41:07.476219 (backfill de execucao anterior)) - recalculando
+    aviso: nao atingiu 90% de variancia mesmo com max_components=40 (alcancado: 84.9%); usando 40 componentes
+  PCA[tp] (referencia): 40 componentes explicam 84.9% da variancia (treino interno)
+  PLS_LAGGED[t2]: 4 componentes explicam 90.4% da variancia de X (treino interno)
+  PLS_LAGGED[cloud_cover]: 15 componentes explicam 79.2% da variancia de X (treino interno)
+  PLS_LAGGED[shum_850]: 15 componentes explicam 87.6% da variancia de X (treino interno)
+  PLS_LAGGED[surface_pressure]: 15 componentes explicam 81.5% da variancia de X (treino interno)
+  PLS_LAGGED[u_850]: 15 componentes explicam 74.0% da variancia de X (treino interno)
+  PLS_LAGGED[v_850]: 15 componentes explicam 75.6% da variancia de X (treino interno)
+  PLS_LAGGED[temperature_850]: 9 componentes explicam 90.6% da variancia de X (treino interno)
+  PLS_LAGGED[rel_hum_850]: 15 componentes explicam 75.6% da variancia de X (treino interno)
+  PLS_LAGGED[geopotential_850]: 15 componentes explicam 73.7% da variancia de X (treino interno)
+  cache de reducao salvo em models/_reduction_cache/pls_lagged_shift1.joblib
+
+=== 3. Montando exemplos (contrato origem + lag) ===
+  treino: 22188 exemplos | validacao: 852 exemplos
+
+=== 4. Treinando (selecao de epocas via validacao interna) ===
+  epoca  1/25 | treino MSE(pca) 360.1715 | val MSE(pca) 263.0396
+  epoca  2/25 | treino MSE(pca) 252.8567 | val MSE(pca) 255.5862
+  epoca  3/25 | treino MSE(pca) 239.6054 | val MSE(pca) 250.5968
+  epoca  4/25 | treino MSE(pca) 232.1714 | val MSE(pca) 254.2322
+  epoca  5/25 | treino MSE(pca) 226.5640 | val MSE(pca) 250.1176
+  epoca  6/25 | treino MSE(pca) 222.0184 | val MSE(pca) 253.6855
+  epoca  7/25 | treino MSE(pca) 217.3104 | val MSE(pca) 254.3452
+  epoca  8/25 | treino MSE(pca) 214.0469 | val MSE(pca) 252.7097
+  epoca  9/25 | treino MSE(pca) 210.8434 | val MSE(pca) 254.4743
+  epoca 10/25 | treino MSE(pca) 207.9493 | val MSE(pca) 257.8007
+  early stopping na epoca 10 (melhor: 5)
+  treino concluido em 159s | melhor epoca: 5 | val MSE(pca): 250.1176
+
+=== 5. Avaliando contra baselines (grade real, mm/dia) ===
+  PLS(defasado)+LSTM    RMSE=1.843  MAE=1.116  (mm/dia)
+  Persistencia  RMSE=4.004  MAE=2.372  (mm/dia)
+  Climatologia  RMSE=1.891  MAE=1.137  (mm/dia)
+
+=== 5b. Salvando artefatos para visualizacao (models/) ===
+  history.csv, metrics.json e sample_grids.npz salvos em models/pls_lagged_lowdim_lstm_run1/
+
+=== 6. Retreinando com todo o historico rotulado (1940-2022) ===
+  epoca  1/5 | MSE(pca) 361.7555
+  epoca  2/5 | MSE(pca) 252.8086
+  epoca  3/5 | MSE(pca) 240.0746
+  epoca  4/5 | MSE(pca) 232.5963
+  epoca  5/5 | MSE(pca) 227.2133
+  modelo final e objetos de reducao salvos em models/pls_lagged_lowdim_lstm_run1/
+
+=== 7. Prevendo o teste real (2023-2024) ===
+
+=== 8. Gerando submissao ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  salvo em submissions/submission_pls_lagged_lowdim_lstm_run1_lstm.csv (1885464 linhas)

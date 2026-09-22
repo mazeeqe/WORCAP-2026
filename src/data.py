@@ -116,7 +116,8 @@ def build_examples(
     last_valid_idx: int,
     hindcast_len: int = HINDCAST_LEN,
     lags: range = LAGS,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    oni_series: np.ndarray | None = None,
+) -> tuple[np.ndarray, ...]:
     """Gera exemplos (hindcast, alvo_atm, tp_congelado, lag) -> y a partir das series
     de coeficientes PCA de cada variavel (ja alinhadas no tempo, indice 0 = primeiro
     mes do dataset completo).
@@ -127,6 +128,14 @@ def build_examples(
     a considerar (ex.: origens de treino ou de validacao).
     last_valid_idx: ultimo indice de tempo com dado real disponivel (para nao gerar
     exemplo cujo alvo o+L caia fora dos dados).
+    oni_series: opcional, (n_meses_total,) - indice ONI por mes (ver src/oni.py),
+    alinhado ao mesmo indice de tempo de `component_series` (0 = primeiro mes do
+    dataset completo), com NaN onde indisponivel (ex.: antes de 1950 - ver
+    src.oni.oni_series_or_nan). Quando passado, cada exemplo usa
+    `oni_series[feature_idx]` (mesmo alinhamento anti-vazamento de `alvo_atm`, o
+    ultimo mes com dado disponivel antes do alvo); exemplos cujo ONI de origem
+    seja NaN sao descartados. Quando None (padrao), o comportamento e identico ao
+    de antes desta feature existir: retorna so os 7 arrays originais, sem o de ONI.
 
     Retorna:
         hindcast: (N, hindcast_len, F_total) - todas as variaveis, H meses ate a origem
@@ -137,10 +146,11 @@ def build_examples(
         y: (N, C_tp) - tp no mes o+L (o que o modelo deve prever)
         origin_idx: (N,) - indice absoluto de tempo da origem `o` (para baselines/plots)
         alvo_idx: (N,) - indice absoluto de tempo do alvo `o+L` (para baselines/plots)
+        oni: (N, 1) - so presente se `oni_series` foi passado (ver acima)
     """
     atm_vars = [v for v in ALL_VARS if v != TP_VAR]
     hindcast_list, alvo_atm_list, tp_congelado_list, lag_list, y_list = [], [], [], [], []
-    origin_idx_list, alvo_idx_list = [], []
+    origin_idx_list, alvo_idx_list, oni_list = [], [], []
 
     for o in range(max(origin_start_idx, hindcast_len - 1), origin_end_idx + 1):
         hindcast_o = np.concatenate(
@@ -155,6 +165,12 @@ def build_examples(
                 break  # lags maiores tambem estourariam - origens perto do fim tem menos lags
 
             feature_idx = alvo_idx - 1  # ultimo mes com dado atmosferico disponivel antes do alvo
+
+            if oni_series is not None:
+                oni_valor = oni_series[feature_idx]
+                if np.isnan(oni_valor):
+                    continue  # ONI indisponivel para essa origem (ex.: antes de 1950)
+
             alvo_atm = np.concatenate([component_series[v][feature_idx] for v in atm_vars])
             y = component_series[TP_VAR][alvo_idx]
 
@@ -165,8 +181,10 @@ def build_examples(
             y_list.append(y)
             origin_idx_list.append(o)
             alvo_idx_list.append(alvo_idx)
+            if oni_series is not None:
+                oni_list.append([oni_valor])
 
-    return (
+    resultado = (
         np.asarray(hindcast_list, dtype=np.float32),
         np.asarray(alvo_atm_list, dtype=np.float32),
         np.asarray(tp_congelado_list, dtype=np.float32),
@@ -175,3 +193,6 @@ def build_examples(
         np.asarray(origin_idx_list, dtype=np.int64),
         np.asarray(alvo_idx_list, dtype=np.int64),
     )
+    if oni_series is not None:
+        resultado = resultado + (np.asarray(oni_list, dtype=np.float32),)
+    return resultado

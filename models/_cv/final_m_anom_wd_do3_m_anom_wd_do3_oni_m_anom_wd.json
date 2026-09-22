@@ -1,0 +1,15 @@
+{
+  "melhor_chave": "encolhimento_m_anom_wd_do3+m_anom_wd_do3_oni+m_anom_wd",
+  "rmse_lofo_cv": 1.7780577182769775,
+  "modelos": [
+    "anom_wd_do3",
+    "anom_wd_do3_oni",
+    "anom_wd"
+  ],
+  "alfas": [
+    0.032167382538318634,
+    0.4134542942047119,
+    0.3644355237483978
+  ],
+  "output": "submissions/submission_m_anom_wd_do3_m_anom_wd_do3_oni_m_anom_wd.csv"
+}
