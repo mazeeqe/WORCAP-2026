@@ -1,0 +1,58 @@
+
+======================================================================
+nova execucao (pls_concurrent) em 2026-09-17 21:24:21.942903
+======================================================================
+=== 0. Metodo de reducao dimensional: pls_concurrent | seed: 42 | hiperparametros: hidden_size=128 dropout=0.3 lr=0.002 ===
+=== 1. Carregando dados ===
+Dados oficiais anexados encontrados em: C:\Users\user\Downloads\previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pls_concurrent, so no treino interno) ===
+Dados oficiais anexados encontrados em: C:\Users\user\Downloads\previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  cache de reducao reaproveitado (models/_reduction_cache/pls_concurrent.joblib, calculado em 2026-09-17T21:00:27.430884) - pulando o ajuste do PCA/PLS
+
+=== 3. Montando exemplos (contrato origem + lag) ===
+  treino: 22188 exemplos | validacao: 852 exemplos
+
+=== 4. Treinando (selecao de epocas via validacao interna) ===
+  epoca  1/25 | treino MSE(pca) 156.1418 | val MSE(pca) 149.3454
+  epoca  2/25 | treino MSE(pca) 124.5552 | val MSE(pca) 152.7381
+  epoca  3/25 | treino MSE(pca) 116.3721 | val MSE(pca) 155.5639
+  epoca  4/25 | treino MSE(pca) 111.1048 | val MSE(pca) 158.2038
+  epoca  5/25 | treino MSE(pca) 107.6373 | val MSE(pca) 157.2088
+  epoca  6/25 | treino MSE(pca) 104.8255 | val MSE(pca) 162.1205
+  early stopping na epoca 6 (melhor: 1)
+  treino concluido em 20s | melhor epoca: 1 | val MSE(pca): 149.3454
+
+=== 5. Avaliando contra baselines (grade real, mm/dia) ===
+  PLS(concorrente)+LSTM RMSE=1.887  MAE=1.150  (mm/dia)
+  Persistencia  RMSE=4.004  MAE=2.372  (mm/dia)
+  Climatologia  RMSE=1.891  MAE=1.137  (mm/dia)
+
+=== 5b. Salvando artefatos para visualizacao (models/) ===
+  history.csv, metrics.json e sample_grids.npz salvos em models\hparam_sweep\pls_concurrent_lr0p002_hs128_do0p3/
+
+=== 6. Retreinando com todo o historico rotulado (1940-2022) ===
+  epoca  1/1 | MSE(pca) 155.2974
+  modelo final e objetos de reducao salvos em models\hparam_sweep\pls_concurrent_lr0p002_hs128_do0p3/
+
+=== 7. Prevendo o teste real (2023-2024) ===
+
+=== 8. Gerando submissao ===
+Dados oficiais anexados encontrados em: C:\Users\user\Downloads\previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  salvo em submissions/submission_pls_concurrent_lr0p002_hs128_do0p3_lstm.csv (1885464 linhas)

@@ -62,6 +62,19 @@ XGB_PARAMS = dict(
     eval_metric="rmse", early_stopping_rounds=30,
 )
 
+# O algoritmo "hist" (padrao) do XGBoost soma gradientes/hessianas em varias
+# threads em ordem nao-deterministica, o que muda levemente os splits
+# escolhidos -- inofensivo isoladamente, mas early_stopping (patience=30) e
+# sensivel a essas variacoes: em testes reais, o MESMO script com os MESMOS
+# dados/seed escolheu best_iteration medio de 131 numa rodada e 52 em outra,
+# mudando o RMSE final de 1.63 para 1.88 (praticamente empatado com a
+# climatologia). Fixar n_jobs=1 eliminaria o ruido mas deixaria o treino ~10x
+# mais lento (16 nucleos disponiveis). Em vez disso, treina N_SEEDS_BAGGING
+# modelos por componente (seeds diferentes) e MEDIA as previsoes -- alem de
+# neutralizar o ruido do early stopping, bagging de verdade reduz variancia
+# (efeito conhecido, nao so um artificio de reprodutibilidade).
+N_SEEDS_BAGGING = 3
+
 
 # ════════════════════════════════════════════════════════════
 # EXPERIMENTO: ONI (indice El Nino/La Nina) como feature de entrada
@@ -117,27 +130,39 @@ def flatten_features(hindcast: np.ndarray, alvo_atm: np.ndarray, tp_congelado: n
 
 
 class MultiOutputXGB:
-    """1 XGBRegressor por componente PCA de tp -- mais simples e portavel entre
+    """N_SEEDS_BAGGING XGBRegressor por componente PCA de tp (seeds diferentes, previsoes
+    medias -- ver justificativa em N_SEEDS_BAGGING) -- mais simples e portavel entre
     versoes do xgboost do que a API nativa de multi-output, e permite registrar a
     curva de MSE de validacao por rodada de boosting (early stopping) por componente,
     igual ao "epoch" do LSTM (ver secao 2 de resultados_pca_lstm.ipynb)."""
 
-    def __init__(self, params: dict, n_components: int):
+    def __init__(self, params: dict, n_components: int, n_seeds: int = N_SEEDS_BAGGING):
         self.params = params
         self.n_components = n_components
-        self.estimadores: list[XGBRegressor] = []
-        self.melhor_iteracao_por_componente: list[int] = []
+        self.n_seeds = n_seeds
+        self.estimadores: list[list[XGBRegressor]] = []  # [componente][seed]
+        self.melhor_iteracao_por_componente: list[float] = []  # media das seeds, por componente
 
     def fit(self, X_tr: np.ndarray, y_tr: np.ndarray, X_va: np.ndarray, y_va: np.ndarray) -> "MultiOutputXGB":
         curvas_treino, curvas_val = [], []
+        seed_base = self.params.get("random_state", 42)
         for c in range(self.n_components):
-            modelo_c = XGBRegressor(**self.params)
-            modelo_c.fit(X_tr, y_tr[:, c], eval_set=[(X_tr, y_tr[:, c]), (X_va, y_va[:, c])], verbose=False)
-            self.estimadores.append(modelo_c)
-            self.melhor_iteracao_por_componente.append(modelo_c.best_iteration)
-            resultados = modelo_c.evals_result()
-            curvas_treino.append(resultados["validation_0"]["rmse"])
-            curvas_val.append(resultados["validation_1"]["rmse"])
+            modelos_c, iteracoes_c = [], []
+            curva_val_c = curva_treino_c = None
+            for s in range(self.n_seeds):
+                params_seed = {**self.params, "random_state": seed_base + s}
+                modelo_cs = XGBRegressor(**params_seed)
+                modelo_cs.fit(X_tr, y_tr[:, c], eval_set=[(X_tr, y_tr[:, c]), (X_va, y_va[:, c])], verbose=False)
+                modelos_c.append(modelo_cs)
+                iteracoes_c.append(modelo_cs.best_iteration)
+                if s == 0:  # 1 curva por componente (da 1a seed) so pra visualizacao agregada
+                    resultados = modelo_cs.evals_result()
+                    curva_treino_c = resultados["validation_0"]["rmse"]
+                    curva_val_c = resultados["validation_1"]["rmse"]
+            self.estimadores.append(modelos_c)
+            self.melhor_iteracao_por_componente.append(float(np.mean(iteracoes_c)))
+            curvas_treino.append(curva_treino_c)
+            curvas_val.append(curva_val_c)
         # curvas de tamanhos diferentes (cada componente para no seu best_iteration + patience) --
         # trunca no menor comprimento comum so pra ter 1 curva agregada pra visualizacao
         min_len = min(len(c) for c in curvas_val)
@@ -152,19 +177,25 @@ class MultiOutputXGB:
 
     def fit_no_eval(self, X: np.ndarray, y: np.ndarray) -> "MultiOutputXGB":
         """Treino final (sem early stopping/eval_set -- usa o numero medio de
-        rodadas escolhido no fit() de selecao acima, arredondado)."""
-        n_estimators_final = int(round(np.mean(self.melhor_iteracao_por_componente))) + 1
+        rodadas escolhido no fit() de selecao acima, arredondado, por componente)."""
         params_finais = {k: v for k, v in self.params.items() if k not in ("early_stopping_rounds", "eval_metric")}
-        params_finais["n_estimators"] = n_estimators_final
+        seed_base = self.params.get("random_state", 42)
         self.estimadores = []
         for c in range(self.n_components):
-            modelo_c = XGBRegressor(**params_finais)
-            modelo_c.fit(X, y[:, c])
-            self.estimadores.append(modelo_c)
+            n_estimators_final = int(round(self.melhor_iteracao_por_componente[c])) + 1
+            modelos_c = []
+            for s in range(self.n_seeds):
+                params_cs = {**params_finais, "n_estimators": n_estimators_final, "random_state": seed_base + s}
+                modelo_cs = XGBRegressor(**params_cs)
+                modelo_cs.fit(X, y[:, c])
+                modelos_c.append(modelo_cs)
+            self.estimadores.append(modelos_c)
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        return np.column_stack([e.predict(X) for e in self.estimadores])
+        return np.column_stack([
+            np.mean([e.predict(X) for e in modelos_c], axis=0) for modelos_c in self.estimadores
+        ])
 
 
 def load_lstm_run(run_dir: str) -> dict | None:
@@ -190,7 +221,8 @@ def load_lstm_run(run_dir: str) -> dict | None:
     return {"lstm": lstm, "reduction_objects": reduction_objects, "stats": artefatos["stats"]}
 
 
-def main(ensemble_with: str | None = None, run_dir: str | None = None, with_oni: bool = False):
+def main(ensemble_with: str | None = None, run_dir: str | None = None, with_oni: bool = False,
+         validate_only: bool = False):
     run_dir = run_dir or (RUN_DIR_ONI if with_oni else RUN_DIR)
     os.makedirs(run_dir, exist_ok=True)
 
@@ -284,25 +316,79 @@ def main(ensemble_with: str | None = None, run_dir: str | None = None, with_oni:
             print(f"\n[ensemble] Artefatos do Modelo A nao encontrados em {ensemble_with} "
                   f"(rode 'python3 -m src.models.pca_lstm.train' primeiro). Pulando ensemble.")
         else:
+            # O Modelo A pode ter sido treinado com uma reducao DIFERENTE da do
+            # XGBoost (aqui sempre PCA; o Modelo A pode ser PLS-concurrent ou
+            # PLS-lagged, ver --method em pca_lstm/train.py). Reutilizar
+            # hindcast_va/atm_va/tp_froz_va (que estao na base PCA do XGBoost)
+            # como entrada da LSTM estaria alimentando ela com coeficientes na
+            # base errada. Em vez disso, reconstroi a serie de componentes na
+            # base NATIVA do Modelo A (so transform, reducao ja treinada) e
+            # so combina as duas previsoes DEPOIS de reconstruir pra grade
+            # fisica (mm/dia) -- unico espaco onde PCA e PLS sao comparaveis.
+            print(f"\n[ensemble] Recalculando features na reducao nativa de {ensemble_with} "
+                  f"(evita misturar bases PCA/PLS)...")
+            reduction_lstm = artefatos_lstm["reduction_objects"]
+            stats_lstm = artefatos_lstm["stats"]
+            component_series_lstm = {}
+            for var in ALL_VARS:
+                media, desvio = stats_lstm[var]
+                bruto = ds[var].values.astype("float32")
+                normalizado = (bruto - media) / desvio
+                component_series_lstm[var] = reduction_lstm[var].transform(normalizado).astype("float32")
+
+            val_ex_lstm = build_examples(component_series_lstm, train_end_idx + 1, last_valid_idx, last_valid_idx=last_valid_idx)
+            hindcast_va_l, atm_va_l, tp_froz_va_l, lag_va_l, _, origin_va_l, alvo_va_l = val_ex_lstm
+            assert np.array_equal(origin_va_l, origin_va) and np.array_equal(alvo_va_l, alvo_va), (
+                "janela de validacao do ensemble nao bate com a do XGBoost -- "
+                "verificar se os dois runs usam o mesmo TRAIN_END/last_valid_idx"
+            )
+
             with torch.no_grad():
                 pred_pca_lstm = artefatos_lstm["lstm"](
-                    torch.from_numpy(hindcast_va), torch.from_numpy(atm_va),
-                    torch.from_numpy(tp_froz_va), torch.from_numpy(lag_va),
+                    torch.from_numpy(hindcast_va_l), torch.from_numpy(atm_va_l),
+                    torch.from_numpy(tp_froz_va_l), torch.from_numpy(lag_va_l),
                 ).numpy()
-            # Ridge por componente: aprende o peso de XGBoost vs LSTM pra cada
-            # coeficiente PCA de tp, treinado SO na validacao (nunca no teste).
-            pred_pca_ens = np.zeros_like(pred_pca_va)
-            for c in range(n_components_tp):
-                meta_c = Ridge(alpha=1.0)
-                opinioes_c = np.column_stack([pred_pca_va[:, c], pred_pca_lstm[:, c]])
-                meta_c.fit(opinioes_c, y_va[:, c])
-                pred_pca_ens[:, c] = meta_c.predict(opinioes_c)
-            pred_grid_ens = reconstruct_tp(reduction_objects[TP_VAR], stats[TP_VAR], pred_pca_ens)
+            pred_grid_lstm = reconstruct_tp(reduction_lstm[TP_VAR], stats_lstm[TP_VAR], pred_pca_lstm)
+            metrics_lstm_sozinho = evaluate_predictions(true_grid, pred_grid_lstm, lags=lag_inteiro_va)
+
+            # Ridge (2 features: previsao XGB e previsao LSTM, em mm/dia) treinado
+            # so na validacao -- amostra ate 2M pontos (exemplo x pixel) pra manter
+            # o fit leve; a grade tem 301x261 pontos entao o total pode passar de
+            # dezenas de milhoes de linhas.
+            x1 = pred_grid.reshape(-1)
+            x2 = pred_grid_lstm.reshape(-1)
+            yv = true_grid.reshape(-1)
+            rng = np.random.default_rng(42)
+            n_total = x1.size
+            tam_amostra = min(2_000_000, n_total)
+            idx_amostra = rng.choice(n_total, size=tam_amostra, replace=False)
+            meta = Ridge(alpha=1.0)
+            meta.fit(np.column_stack([x1[idx_amostra], x2[idx_amostra]]), yv[idx_amostra])
+            pred_grid_ens = (
+                meta.coef_[0] * pred_grid + meta.coef_[1] * pred_grid_lstm + meta.intercept_
+            ).astype("float32")
+
             metrics_ens = evaluate_predictions(true_grid, pred_grid_ens, lags=lag_inteiro_va)
-            print(f"\n  Ensemble (XGB+LSTM, Ridge)  RMSE={metrics_ens['rmse']:.3f}  MAE={metrics_ens['mae']:.3f}  (mm/dia)")
+            print(f"  Modelo A sozinho ({ensemble_with})  RMSE={metrics_lstm_sozinho['rmse']:.3f}  MAE={metrics_lstm_sozinho['mae']:.3f}  (mm/dia)")
+            print(f"  Ensemble (XGB+LSTM, Ridge fisico)  RMSE={metrics_ens['rmse']:.3f}  MAE={metrics_ens['mae']:.3f}  (mm/dia)  "
+                  f"pesos: xgb={meta.coef_[0]:.3f} lstm={meta.coef_[1]:.3f} intercepto={meta.intercept_:.3f}")
             with open(f"{run_dir}/metrics_ensemble.json", "w") as f:
-                json.dump({"ensemble_com": ensemble_with, "ensemble": metrics_ens, "xgb_sozinho": metrics_model}, f, indent=2)
+                json.dump({
+                    "ensemble_com": ensemble_with,
+                    "ensemble": metrics_ens,
+                    "xgb_sozinho": metrics_model,
+                    "lstm_sozinho": metrics_lstm_sozinho,
+                    "pesos_ridge": {
+                        "xgb": float(meta.coef_[0]), "lstm": float(meta.coef_[1]),
+                        "intercepto": float(meta.intercept_),
+                    },
+                }, f, indent=2)
             ensemble_result = metrics_ens
+
+    if validate_only:
+        print("\n[--validate-only] Pulando retreino com historico completo e geracao de submissao "
+              "(so avaliacao na validacao interna).")
+        return None, None, ensemble_result
 
     print("\n=== 6. Retreinando com todo o historico rotulado (1940-2022) ===")
     full_ex = build_examples(component_series, 0, last_valid_idx, last_valid_idx=last_valid_idx)
@@ -386,9 +472,16 @@ def parse_args() -> argparse.Namespace:
              "entrada -- ver montar_features_oni. Requer 'python3 preparar_oni.py' rodado antes "
              "(gera oni_mensal.csv localmente, nao versionado).",
     )
+    parser.add_argument(
+        "--validate-only", action="store_true",
+        help="Para no passo 5 (avaliacao na validacao interna / ensemble); pula o retreino com "
+             "historico completo e a geracao de submissao (~20min mais rapido, util para testar "
+             "reprodutibilidade/hiperparametros sem gerar submission.csv toda hora).",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    main(ensemble_with=args.ensemble_with, run_dir=args.run_dir, with_oni=args.with_oni)
+    main(ensemble_with=args.ensemble_with, run_dir=args.run_dir, with_oni=args.with_oni,
+         validate_only=args.validate_only)

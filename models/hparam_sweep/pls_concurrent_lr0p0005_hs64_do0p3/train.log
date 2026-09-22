@@ -1,0 +1,62 @@
+
+======================================================================
+nova execucao (pls_concurrent) em 2026-09-17 21:01:14.595340
+======================================================================
+=== 0. Metodo de reducao dimensional: pls_concurrent | seed: 42 | hiperparametros: hidden_size=64 dropout=0.3 lr=0.0005 ===
+=== 1. Carregando dados ===
+Dados oficiais anexados encontrados em: C:\Users\user\Downloads\previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+  996 meses (1940-01-01 a 2022-12-01)
+  origens de treino interno ate indice 947 (2018-12-01)
+  origens de validacao interna ate indice 995 (2022-12-01)
+
+=== 2. Reduzindo dimensionalidade por variavel (pls_concurrent, so no treino interno) ===
+Dados oficiais anexados encontrados em: C:\Users\user\Downloads\previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  cache de reducao reaproveitado (models/_reduction_cache/pls_concurrent.joblib, calculado em 2026-09-17T21:00:27.430884) - pulando o ajuste do PCA/PLS
+
+=== 3. Montando exemplos (contrato origem + lag) ===
+  treino: 22188 exemplos | validacao: 852 exemplos
+
+=== 4. Treinando (selecao de epocas via validacao interna) ===
+  epoca  1/25 | treino MSE(pca) 233.5033 | val MSE(pca) 153.0241
+  epoca  2/25 | treino MSE(pca) 154.3494 | val MSE(pca) 148.2416
+  epoca  3/25 | treino MSE(pca) 146.2591 | val MSE(pca) 147.2407
+  epoca  4/25 | treino MSE(pca) 142.6198 | val MSE(pca) 148.1201
+  epoca  5/25 | treino MSE(pca) 140.3290 | val MSE(pca) 149.3361
+  epoca  6/25 | treino MSE(pca) 137.9182 | val MSE(pca) 149.8182
+  epoca  7/25 | treino MSE(pca) 137.0176 | val MSE(pca) 151.1981
+  epoca  8/25 | treino MSE(pca) 135.2123 | val MSE(pca) 151.1975
+  early stopping na epoca 8 (melhor: 3)
+  treino concluido em 16s | melhor epoca: 3 | val MSE(pca): 147.2407
+
+=== 5. Avaliando contra baselines (grade real, mm/dia) ===
+  PLS(concorrente)+LSTM RMSE=1.878  MAE=1.142  (mm/dia)
+  Persistencia  RMSE=4.004  MAE=2.372  (mm/dia)
+  Climatologia  RMSE=1.891  MAE=1.137  (mm/dia)
+
+=== 5b. Salvando artefatos para visualizacao (models/) ===
+  history.csv, metrics.json e sample_grids.npz salvos em models\hparam_sweep\pls_concurrent_lr0p0005_hs64_do0p3/
+
+=== 6. Retreinando com todo o historico rotulado (1940-2022) ===
+  epoca  1/3 | MSE(pca) 228.0925
+  epoca  2/3 | MSE(pca) 153.3366
+  epoca  3/3 | MSE(pca) 145.3729
+  modelo final e objetos de reducao salvos em models\hparam_sweep\pls_concurrent_lr0p0005_hs64_do0p3/
+
+=== 7. Prevendo o teste real (2023-2024) ===
+
+=== 8. Gerando submissao ===
+Dados oficiais anexados encontrados em: C:\Users\user\Downloads\previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  salvo em submissions/submission_pls_concurrent_lr0p0005_hs64_do0p3_lstm.csv (1885464 linhas)
