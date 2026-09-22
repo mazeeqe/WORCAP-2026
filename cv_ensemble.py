@@ -95,6 +95,18 @@ CONFIGS = {
     # decoder (ver --use-oni-feature em src/models/pca_lstm/train.py) - reavalia sob esta CV de 5
     # dobras a conclusao anterior (piorou 1.840->1.865, mas numa unica janela de validacao 2019-2022)
     "anom_wd_do3_oni": dict(hidden_size=128, dropout=0.3, lr=5e-4, weight_decay=0.5, anomaly=True, use_oni_feature=True),
+    # sweep focado em dropout x weight_decay ao redor do vencedor da screening (anom_wd_do3:
+    # do=0.3/wd=0.5) e do 2o melhor (anom_wd: do=0.1/wd=0.5) - hidden_size=128 e lr=5e-4 ja
+    # estabelecidos como melhores por um sweep anterior (models/hparam_sweep/, sem a
+    # reformulacao em anomalia); aqui a interseccao nao testada e do x wd.
+    "anom_do2_wd5": dict(hidden_size=128, dropout=0.2, lr=5e-4, weight_decay=0.5, anomaly=True),
+    "anom_do4_wd5": dict(hidden_size=128, dropout=0.4, lr=5e-4, weight_decay=0.5, anomaly=True),
+    "anom_do1_wd1": dict(hidden_size=128, dropout=0.1, lr=5e-4, weight_decay=0.1, anomaly=True),
+    "anom_do1_wd3": dict(hidden_size=128, dropout=0.1, lr=5e-4, weight_decay=0.3, anomaly=True),
+    "anom_do1_wd7": dict(hidden_size=128, dropout=0.1, lr=5e-4, weight_decay=0.7, anomaly=True),
+    "anom_do3_wd1": dict(hidden_size=128, dropout=0.3, lr=5e-4, weight_decay=0.1, anomaly=True),
+    "anom_do3_wd3": dict(hidden_size=128, dropout=0.3, lr=5e-4, weight_decay=0.3, anomaly=True),
+    "anom_do3_wd7": dict(hidden_size=128, dropout=0.3, lr=5e-4, weight_decay=0.7, anomaly=True),
 }
 RIDGE_ALPHAS = [100, 1000, 10000]  # config "ridge_a<alpha>": ridge linear sobre o input do decoder
 for _a in RIDGE_ALPHAS:
