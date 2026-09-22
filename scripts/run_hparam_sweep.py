@@ -2,10 +2,10 @@
 um unico metodo de reducao dimensional.
 
 Uso (a partir da raiz do repositorio):
-    python3 run_hparam_sweep.py                                  # metodo = melhor RMSE em
-                                                                    # models/run_all_summary.json
-    python3 run_hparam_sweep.py --method pls_concurrent
-    python3 run_hparam_sweep.py --method pca --lrs 5e-4 1e-3 --hidden-sizes 64 128 --dropouts 0.1
+    python3 -m scripts.run_hparam_sweep                                  # metodo = melhor RMSE em
+                                                                             # models/run_all_summary.json
+    python3 -m scripts.run_hparam_sweep --method pls_concurrent
+    python3 -m scripts.run_hparam_sweep --method pca --lrs 5e-4 1e-3 --hidden-sizes 64 128 --dropouts 0.1
 
 Grade padrao ("pequena"): lr x hidden_size x dropout = 3 x 3 x 2 = 18 execucoes.
 

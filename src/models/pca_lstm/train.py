@@ -60,7 +60,7 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from src.baseline import climatology_baseline, persistence_baseline
-from download_data import download_competition_data
+from scripts.download_data import download_competition_data
 from src.data import (
     ALL_VARS,
     FEATURE_VARS,

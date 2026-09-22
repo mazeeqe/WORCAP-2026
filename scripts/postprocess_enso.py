@@ -22,10 +22,10 @@ vista na validacao (~+1.0 max), entao extrapolar sem limite seria arriscado.
 Tabela do ONI em src/oni.py (NOAA CPC, ONI v6, 1950-01 a 2024-12 - compartilhada com a
 feature de entrada opcional --use-oni-feature em src/models/pca_lstm/train.py).
 
-Uso:
-    python3 postprocess_enso.py                              # usa RUN_DIRS["pls_lagged"] (melhor RMSE)
-    python3 postprocess_enso.py --run-dir models/pca_lstm_run1
-    python3 postprocess_enso.py --apply-to-test               # tambem gera submissao corrigida
+Uso (a partir da raiz do repositorio):
+    python3 -m scripts.postprocess_enso                              # usa RUN_DIRS["pls_lagged"] (melhor RMSE)
+    python3 -m scripts.postprocess_enso --run-dir models/pca_lstm_run1
+    python3 -m scripts.postprocess_enso --apply-to-test               # tambem gera submissao corrigida
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ from src.models.pca_lstm import HindcastForecastLSTM
 from src.models.pca_lstm.train import RUN_DIRS, reconstruct_tp
 from src.oni import oni_para_datas
 from src.submit import build_submission
-from download_data import download_competition_data
+from scripts.download_data import download_competition_data
 
 DEVICE = torch.device("cpu")
 

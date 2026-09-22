@@ -6,8 +6,8 @@ Gera resumos em `eda_output/` (CSV) que também são reaproveitados pelo noteboo
 `eda.ipynb` para os gráficos, evitando reprocessar os arquivos NetCDF (grandes)
 duas vezes.
 
-Uso:
-    python3 eda.py
+Uso (a partir da raiz do repositorio):
+    python3 -m scripts.eda
 """
 
 import os
@@ -15,7 +15,7 @@ import os
 import pandas as pd
 import xarray as xr
 
-from download_data import download_competition_data, load_dataset_files
+from scripts.download_data import download_competition_data, load_dataset_files
 
 OUTPUT_DIR = "eda_output"
 

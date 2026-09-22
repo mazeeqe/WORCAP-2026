@@ -28,9 +28,9 @@ se uma dobra falhar (ou o processo for morto), rodar de novo pula as que ja tem
 residuos salvos em vez de refazer tudo.
 
 Uso (a partir da raiz do repositorio):
-    python3 enso_correction_cv.py                  # orquestrador: roda as dobras que faltam + agrega
-    python3 enso_correction_cv.py --apply-to-test
-    python3 enso_correction_cv.py --fold 1969       # uso interno (worker de 1 dobra so)
+    python3 -m scripts.enso_correction_cv                  # orquestrador: roda as dobras que faltam + agrega
+    python3 -m scripts.enso_correction_cv --apply-to-test
+    python3 -m scripts.enso_correction_cv --fold 1969       # uso interno (worker de 1 dobra so)
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ from src.models.pca_lstm.train import (
     train_model,
 )
 from src.oni import oni_para_datas
-from postprocess_enso import _carregar_modelo, aplicar_correcao, fit_pixel_correction, prever_teste_corrigido
+from scripts.postprocess_enso import _carregar_modelo, aplicar_correcao, fit_pixel_correction, prever_teste_corrigido
 
 HIDDEN_SIZE, DROPOUT, LR = 128, 0.1, 5e-4  # hiperparametros ja promovidos (ver models/pls_lagged_lstm_run1)
 N_JOBS_REDUCTION_CV = 2  # cada dobra agora roda isolada em subprocesso (ver acima), entao nao
@@ -232,10 +232,10 @@ def main(apply_to_test: bool):
                   f"(apague o arquivo pra refazer essa dobra)")
             continue
         print(f"\n{'#' * 70}\n# Dobra {nome}: rodando em subprocesso isolado\n{'#' * 70}")
-        resultado = subprocess.run([sys.executable, __file__, "--fold", nome])
+        resultado = subprocess.run([sys.executable, "-m", "scripts.enso_correction_cv", "--fold", nome])
         if resultado.returncode != 0:
             print(f"AVISO: dobra {nome} falhou (returncode={resultado.returncode}) - "
-                  f"rode 'python3 {os.path.basename(__file__)} --fold {nome}' isolado pra depurar. "
+                  f"rode 'python3 -m scripts.enso_correction_cv --fold {nome}' isolado pra depurar. "
                   f"Continuando com as demais dobras.")
 
     true_grids, pred_grids, onis, fold_ids, rmses_dobra = [], [], [], [], {}

@@ -16,8 +16,8 @@ Isso NAO substitui uma avaliacao fim-a-fim (RMSE do LSTM completo, mm/dia) - e u
 rapida pra decidir qual(is) metodo(s) vale a pena promover pra um teste completo depois.
 
 Uso (a partir da raiz do repositorio):
-    python3 compare_reducao_dimensional.py
-    python3 compare_reducao_dimensional.py --var-nao-supervisionada shum_850 --n-components 20,40
+    python3 -m scripts.compare_reducao_dimensional
+    python3 -m scripts.compare_reducao_dimensional --var-nao-supervisionada shum_850 --n-components 20,40
 """
 
 from __future__ import annotations
@@ -148,8 +148,9 @@ def main(var_nao_supervisionada: str, var_supervisionada: str, n_components_list
         todos_resultados += avaliar_supervisionado(var_supervisionada, flat_x_train, flat_x_val, y_train, k)
 
     df = pd.DataFrame(todos_resultados)
-    df.to_csv("comparacao_reducao_dimensional.csv", index=False)
-    print(f"\n=== Resultado completo salvo em comparacao_reducao_dimensional.csv ===")
+    output_path = "models/comparacao_reducao_dimensional.csv"
+    df.to_csv(output_path, index=False)
+    print(f"\n=== Resultado completo salvo em {output_path} ===")
     print(df.to_string(index=False))
     return df
 
