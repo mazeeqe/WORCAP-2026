@@ -18,6 +18,12 @@ models/**/*.pt
 models/**/*.joblib
 !models/**/*.csv
 
+# Caches de fold da CV do ENSO (varios GB, resumiveis, cada um regenera
+# rodando enso_correction_cv.py / cv_ensemble.py de novo) - metricas pequenas
+# (history.csv, report.json, screening.log) continuam versionadas acima
+models/_cv/**/*.npz
+models/_enso_cv_folds/**/*.npz
+
 # Python
 __pycache__/
 *.pyc

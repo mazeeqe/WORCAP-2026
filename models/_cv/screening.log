@@ -1,0 +1,551 @@
+
+######################################################################
+# Dobra 1969: 8 execucoes pendentes (base:0 anom:0 anom_wd:0 anom_wd_do3:0 anom_h32:0 ridge_a100:0 ridge_a1000:0 ridge_a10000:0)
+######################################################################
+=== Dobra 1969: treino 1940-1969, validacao 1970-1979 ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+    aviso: nao atingiu 90% de variancia mesmo com max_components=40 (alcancado: 87.6%); usando 40 componentes
+  PCA[tp] (referencia): 40 componentes explicam 87.6% da variancia (treino interno)
+/home/mazeeqe/.local/lib/python3.14/site-packages/sklearn/cross_decomposition/_pls.py:104: ConvergenceWarning: Maximum number of iterations reached
+  warnings.warn("Maximum number of iterations reached", ConvergenceWarning)
+/home/mazeeqe/.local/lib/python3.14/site-packages/sklearn/cross_decomposition/_pls.py:104: ConvergenceWarning: Maximum number of iterations reached
+  warnings.warn("Maximum number of iterations reached", ConvergenceWarning)
+  PLS_LAGGED[t2]: 3 componentes explicam 90.3% da variancia de X (treino interno)
+  PLS_LAGGED[cloud_cover]: 15 componentes explicam 80.5% da variancia de X (treino interno)
+  PLS_LAGGED[shum_850]: 15 componentes explicam 87.9% da variancia de X (treino interno)
+  PLS_LAGGED[surface_pressure]: 15 componentes explicam 86.1% da variancia de X (treino interno)
+  PLS_LAGGED[u_850]: 15 componentes explicam 73.4% da variancia de X (treino interno)
+  PLS_LAGGED[v_850]: 15 componentes explicam 76.2% da variancia de X (treino interno)
+  PLS_LAGGED[temperature_850]: 9 componentes explicam 90.5% da variancia de X (treino interno)
+  PLS_LAGGED[rel_hum_850]: 15 componentes explicam 76.9% da variancia de X (treino interno)
+  PLS_LAGGED[geopotential_850]: 15 componentes explicam 77.7% da variancia de X (treino interno)
+  treino: 8076 exemplos | validacao: 2580 exemplos | componentes tp: 40
+  meta salvo (piso de reconstrucao: RMSE 1.1523)
+
+  -- base (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': False}
+    epoca  1/8 | treino MSE 488.990 | val MSE(comp) 245.311
+    epoca  2/8 | treino MSE 264.749 | val MSE(comp) 243.107
+    epoca  3/8 | treino MSE 235.947 | val MSE(comp) 246.270
+    epoca  4/8 | treino MSE 217.826 | val MSE(comp) 250.941
+    epoca  5/8 | treino MSE 204.123 | val MSE(comp) 257.971
+    epoca  6/8 | treino MSE 193.001 | val MSE(comp) 260.883
+    epoca  7/8 | treino MSE 183.518 | val MSE(comp) 268.705
+    epoca  8/8 | treino MSE 175.326 | val MSE(comp) 272.832
+  RMSE grade (ultima epoca): direto 1.8355 | via componentes 1.8355
+  salvo em models/_cv/1969/base_s0.npz (43s)
+
+  -- anom (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': True}
+    epoca  1/8 | treino MSE 273.075 | val MSE(comp) 251.151
+    epoca  2/8 | treino MSE 227.432 | val MSE(comp) 256.807
+    epoca  3/8 | treino MSE 201.225 | val MSE(comp) 262.390
+    epoca  4/8 | treino MSE 181.579 | val MSE(comp) 269.936
+    epoca  5/8 | treino MSE 166.156 | val MSE(comp) 277.312
+    epoca  6/8 | treino MSE 153.440 | val MSE(comp) 280.923
+    epoca  7/8 | treino MSE 143.008 | val MSE(comp) 289.648
+    epoca  8/8 | treino MSE 134.636 | val MSE(comp) 294.982
+  RMSE grade (ultima epoca): direto 1.8801 | via componentes 1.8801
+  salvo em models/_cv/1969/anom_s0.npz (31s)
+
+  -- anom_wd (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 273.225 | val MSE(comp) 250.534
+    epoca  2/8 | treino MSE 228.442 | val MSE(comp) 255.509
+    epoca  3/8 | treino MSE 203.056 | val MSE(comp) 260.137
+    epoca  4/8 | treino MSE 184.241 | val MSE(comp) 266.335
+    epoca  5/8 | treino MSE 169.502 | val MSE(comp) 272.628
+    epoca  6/8 | treino MSE 157.637 | val MSE(comp) 274.560
+    epoca  7/8 | treino MSE 147.864 | val MSE(comp) 282.015
+    epoca  8/8 | treino MSE 140.115 | val MSE(comp) 285.779
+  RMSE grade (ultima epoca): direto 1.8617 | via componentes 1.8617
+  salvo em models/_cv/1969/anom_wd_s0.npz (29s)
+
+  -- anom_wd_do3 (seed 0) {'hidden_size': 128, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 281.201 | val MSE(comp) 248.511
+    epoca  2/8 | treino MSE 240.068 | val MSE(comp) 251.317
+    epoca  3/8 | treino MSE 218.728 | val MSE(comp) 253.824
+    epoca  4/8 | treino MSE 203.720 | val MSE(comp) 256.768
+    epoca  5/8 | treino MSE 191.443 | val MSE(comp) 261.990
+    epoca  6/8 | treino MSE 182.585 | val MSE(comp) 261.002
+    epoca  7/8 | treino MSE 174.984 | val MSE(comp) 266.041
+    epoca  8/8 | treino MSE 168.778 | val MSE(comp) 267.995
+  RMSE grade (ultima epoca): direto 1.8256 | via componentes 1.8256
+  salvo em models/_cv/1969/anom_wd_do3_s0.npz (37s)
+
+  -- anom_h32 (seed 0) {'hidden_size': 32, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 301.856 | val MSE(comp) 251.793
+    epoca  2/8 | treino MSE 272.667 | val MSE(comp) 249.535
+    epoca  3/8 | treino MSE 258.198 | val MSE(comp) 249.057
+    epoca  4/8 | treino MSE 248.120 | val MSE(comp) 248.900
+    epoca  5/8 | treino MSE 240.568 | val MSE(comp) 250.347
+    epoca  6/8 | treino MSE 235.179 | val MSE(comp) 251.175
+    epoca  7/8 | treino MSE 230.018 | val MSE(comp) 252.709
+    epoca  8/8 | treino MSE 226.640 | val MSE(comp) 253.349
+  RMSE grade (ultima epoca): direto 1.7954 | via componentes 1.7954
+  salvo em models/_cv/1969/anom_h32_s0.npz (16s)
+
+  -- ridge_a100 (seed 0) {'ridge_alpha': 100}
+  RMSE grade (ultima epoca): direto 1.9091 | via componentes 1.9091
+  salvo em models/_cv/1969/ridge_a100_s0.npz (2s)
+
+  -- ridge_a1000 (seed 0) {'ridge_alpha': 1000}
+  RMSE grade (ultima epoca): direto 1.8341 | via componentes 1.8341
+  salvo em models/_cv/1969/ridge_a1000_s0.npz (2s)
+
+  -- ridge_a10000 (seed 0) {'ridge_alpha': 10000}
+  RMSE grade (ultima epoca): direto 1.7864 | via componentes 1.7864
+  salvo em models/_cv/1969/ridge_a10000_s0.npz (2s)
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 86.1%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 73.4%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 76.9%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 77.7%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 80.5%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 87.9%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 76.2%); usando 15 componentes
+
+######################################################################
+# Dobra 1979: 8 execucoes pendentes (base:0 anom:0 anom_wd:0 anom_wd_do3:0 anom_h32:0 ridge_a100:0 ridge_a1000:0 ridge_a10000:0)
+######################################################################
+=== Dobra 1979: treino 1940-1979, validacao 1980-1989 ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+    aviso: nao atingiu 90% de variancia mesmo com max_components=40 (alcancado: 86.7%); usando 40 componentes
+  PCA[tp] (referencia): 40 componentes explicam 86.7% da variancia (treino interno)
+/home/mazeeqe/.local/lib/python3.14/site-packages/sklearn/cross_decomposition/_pls.py:104: ConvergenceWarning: Maximum number of iterations reached
+  warnings.warn("Maximum number of iterations reached", ConvergenceWarning)
+  PLS_LAGGED[t2]: 3 componentes explicam 90.1% da variancia de X (treino interno)
+  PLS_LAGGED[cloud_cover]: 15 componentes explicam 79.7% da variancia de X (treino interno)
+  PLS_LAGGED[shum_850]: 15 componentes explicam 87.8% da variancia de X (treino interno)
+  PLS_LAGGED[surface_pressure]: 15 componentes explicam 85.2% da variancia de X (treino interno)
+  PLS_LAGGED[u_850]: 15 componentes explicam 74.3% da variancia de X (treino interno)
+  PLS_LAGGED[v_850]: 15 componentes explicam 76.0% da variancia de X (treino interno)
+  PLS_LAGGED[temperature_850]: 9 componentes explicam 90.4% da variancia de X (treino interno)
+  PLS_LAGGED[rel_hum_850]: 15 componentes explicam 76.2% da variancia de X (treino interno)
+  PLS_LAGGED[geopotential_850]: 15 componentes explicam 78.1% da variancia de X (treino interno)
+  treino: 10956 exemplos | validacao: 2580 exemplos | componentes tp: 40
+  meta salvo (piso de reconstrucao: RMSE 1.1325)
+
+  -- base (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': False}
+    epoca  1/8 | treino MSE 422.695 | val MSE(comp) 251.940
+    epoca  2/8 | treino MSE 249.471 | val MSE(comp) 244.650
+    epoca  3/8 | treino MSE 226.756 | val MSE(comp) 242.672
+    epoca  4/8 | treino MSE 211.197 | val MSE(comp) 243.869
+    epoca  5/8 | treino MSE 199.506 | val MSE(comp) 244.780
+    epoca  6/8 | treino MSE 189.765 | val MSE(comp) 250.735
+    epoca  7/8 | treino MSE 182.063 | val MSE(comp) 249.188
+    epoca  8/8 | treino MSE 174.532 | val MSE(comp) 249.782
+  RMSE grade (ultima epoca): direto 1.7723 | via componentes 1.7723
+  salvo em models/_cv/1979/base_s0.npz (55s)
+
+  -- anom (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': True}
+    epoca  1/8 | treino MSE 261.596 | val MSE(comp) 248.364
+    epoca  2/8 | treino MSE 218.214 | val MSE(comp) 244.912
+    epoca  3/8 | treino MSE 194.328 | val MSE(comp) 244.717
+    epoca  4/8 | treino MSE 177.326 | val MSE(comp) 247.458
+    epoca  5/8 | treino MSE 163.994 | val MSE(comp) 252.569
+    epoca  6/8 | treino MSE 153.630 | val MSE(comp) 256.087
+    epoca  7/8 | treino MSE 144.989 | val MSE(comp) 257.760
+    epoca  8/8 | treino MSE 137.328 | val MSE(comp) 261.053
+  RMSE grade (ultima epoca): direto 1.7958 | via componentes 1.7958
+  salvo em models/_cv/1979/anom_s0.npz (41s)
+
+  -- anom_wd (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 261.808 | val MSE(comp) 248.143
+    epoca  2/8 | treino MSE 219.383 | val MSE(comp) 244.028
+    epoca  3/8 | treino MSE 196.355 | val MSE(comp) 242.760
+    epoca  4/8 | treino MSE 180.191 | val MSE(comp) 244.016
+    epoca  5/8 | treino MSE 167.761 | val MSE(comp) 247.844
+    epoca  6/8 | treino MSE 158.288 | val MSE(comp) 250.275
+    epoca  7/8 | treino MSE 150.646 | val MSE(comp) 250.519
+    epoca  8/8 | treino MSE 143.937 | val MSE(comp) 252.500
+  RMSE grade (ultima epoca): direto 1.7780 | via componentes 1.7780
+  salvo em models/_cv/1979/anom_wd_s0.npz (33s)
+
+  -- anom_wd_do3 (seed 0) {'hidden_size': 128, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 269.462 | val MSE(comp) 248.876
+    epoca  2/8 | treino MSE 230.502 | val MSE(comp) 242.489
+    epoca  3/8 | treino MSE 211.743 | val MSE(comp) 240.042
+    epoca  4/8 | treino MSE 198.663 | val MSE(comp) 239.797
+    epoca  5/8 | treino MSE 189.096 | val MSE(comp) 240.269
+    epoca  6/8 | treino MSE 181.631 | val MSE(comp) 241.181
+    epoca  7/8 | treino MSE 175.276 | val MSE(comp) 239.938
+    epoca  8/8 | treino MSE 169.444 | val MSE(comp) 241.241
+  RMSE grade (ultima epoca): direto 1.7543 | via componentes 1.7543
+  salvo em models/_cv/1979/anom_wd_do3_s0.npz (34s)
+
+  -- anom_h32 (seed 0) {'hidden_size': 32, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 290.724 | val MSE(comp) 258.977
+    epoca  2/8 | treino MSE 263.880 | val MSE(comp) 251.965
+    epoca  3/8 | treino MSE 249.749 | val MSE(comp) 245.959
+    epoca  4/8 | treino MSE 239.816 | val MSE(comp) 244.081
+    epoca  5/8 | treino MSE 232.618 | val MSE(comp) 243.444
+    epoca  6/8 | treino MSE 228.461 | val MSE(comp) 243.010
+    epoca  7/8 | treino MSE 225.227 | val MSE(comp) 242.669
+    epoca  8/8 | treino MSE 222.320 | val MSE(comp) 242.184
+  RMSE grade (ultima epoca): direto 1.7563 | via componentes 1.7563
+  salvo em models/_cv/1979/anom_h32_s0.npz (19s)
+
+  -- ridge_a100 (seed 0) {'ridge_alpha': 100}
+  RMSE grade (ultima epoca): direto 1.8085 | via componentes 1.8085
+  salvo em models/_cv/1979/ridge_a100_s0.npz (2s)
+
+  -- ridge_a1000 (seed 0) {'ridge_alpha': 1000}
+  RMSE grade (ultima epoca): direto 1.7774 | via componentes 1.7774
+  salvo em models/_cv/1979/ridge_a1000_s0.npz (2s)
+
+  -- ridge_a10000 (seed 0) {'ridge_alpha': 10000}
+  RMSE grade (ultima epoca): direto 1.7599 | via componentes 1.7599
+  salvo em models/_cv/1979/ridge_a10000_s0.npz (2s)
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 79.7%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 87.8%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 74.3%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 76.2%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 78.1%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 85.2%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 76.0%); usando 15 componentes
+
+######################################################################
+# Dobra 1989: 8 execucoes pendentes (base:0 anom:0 anom_wd:0 anom_wd_do3:0 anom_h32:0 ridge_a100:0 ridge_a1000:0 ridge_a10000:0)
+######################################################################
+=== Dobra 1989: treino 1940-1989, validacao 1990-1999 ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+    aviso: nao atingiu 90% de variancia mesmo com max_components=40 (alcancado: 86.2%); usando 40 componentes
+  PCA[tp] (referencia): 40 componentes explicam 86.2% da variancia (treino interno)
+/home/mazeeqe/.local/lib/python3.14/site-packages/sklearn/cross_decomposition/_pls.py:104: ConvergenceWarning: Maximum number of iterations reached
+  warnings.warn("Maximum number of iterations reached", ConvergenceWarning)
+/home/mazeeqe/.local/lib/python3.14/site-packages/sklearn/cross_decomposition/_pls.py:104: ConvergenceWarning: Maximum number of iterations reached
+  warnings.warn("Maximum number of iterations reached", ConvergenceWarning)
+  PLS_LAGGED[t2]: 4 componentes explicam 90.4% da variancia de X (treino interno)
+  PLS_LAGGED[cloud_cover]: 15 componentes explicam 79.6% da variancia de X (treino interno)
+  PLS_LAGGED[shum_850]: 15 componentes explicam 87.7% da variancia de X (treino interno)
+  PLS_LAGGED[surface_pressure]: 15 componentes explicam 83.5% da variancia de X (treino interno)
+  PLS_LAGGED[u_850]: 15 componentes explicam 74.0% da variancia de X (treino interno)
+  PLS_LAGGED[v_850]: 15 componentes explicam 74.2% da variancia de X (treino interno)
+  PLS_LAGGED[temperature_850]: 9 componentes explicam 90.4% da variancia de X (treino interno)
+  PLS_LAGGED[rel_hum_850]: 15 componentes explicam 75.9% da variancia de X (treino interno)
+  PLS_LAGGED[geopotential_850]: 15 componentes explicam 73.1% da variancia de X (treino interno)
+  treino: 13836 exemplos | validacao: 2580 exemplos | componentes tp: 40
+  meta salvo (piso de reconstrucao: RMSE 1.1489)
+
+  -- base (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': False}
+    epoca  1/8 | treino MSE 399.959 | val MSE(comp) 244.564
+    epoca  2/8 | treino MSE 244.810 | val MSE(comp) 238.628
+    epoca  3/8 | treino MSE 223.821 | val MSE(comp) 238.258
+    epoca  4/8 | treino MSE 210.242 | val MSE(comp) 242.174
+    epoca  5/8 | treino MSE 200.114 | val MSE(comp) 244.653
+    epoca  6/8 | treino MSE 191.761 | val MSE(comp) 247.721
+    epoca  7/8 | treino MSE 183.960 | val MSE(comp) 250.538
+    epoca  8/8 | treino MSE 177.728 | val MSE(comp) 256.781
+  RMSE grade (ultima epoca): direto 1.7896 | via componentes 1.7896
+  salvo em models/_cv/1989/base_s0.npz (81s)
+
+  -- anom (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': True}
+    epoca  1/8 | treino MSE 259.206 | val MSE(comp) 231.996
+    epoca  2/8 | treino MSE 216.764 | val MSE(comp) 232.725
+    epoca  3/8 | treino MSE 195.146 | val MSE(comp) 238.131
+    epoca  4/8 | treino MSE 179.827 | val MSE(comp) 242.735
+    epoca  5/8 | treino MSE 167.702 | val MSE(comp) 247.540
+    epoca  6/8 | treino MSE 157.939 | val MSE(comp) 248.521
+    epoca  7/8 | treino MSE 149.573 | val MSE(comp) 253.688
+    epoca  8/8 | treino MSE 142.923 | val MSE(comp) 259.210
+  RMSE grade (ultima epoca): direto 1.7946 | via componentes 1.7946
+  salvo em models/_cv/1989/anom_s0.npz (92s)
+
+  -- anom_wd (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 259.476 | val MSE(comp) 231.792
+    epoca  2/8 | treino MSE 217.989 | val MSE(comp) 231.130
+    epoca  3/8 | treino MSE 197.283 | val MSE(comp) 235.183
+    epoca  4/8 | treino MSE 183.044 | val MSE(comp) 238.784
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 83.5%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 74.2%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 75.9%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 73.1%); usando 15 componentes
+    epoca  5/8 | treino MSE 172.003 | val MSE(comp) 241.670
+    epoca  6/8 | treino MSE 163.467 | val MSE(comp) 241.611
+    epoca  7/8 | treino MSE 156.154 | val MSE(comp) 245.454
+    epoca  8/8 | treino MSE 150.539 | val MSE(comp) 249.559
+  RMSE grade (ultima epoca): direto 1.7748 | via componentes 1.7748
+  salvo em models/_cv/1989/anom_wd_s0.npz (100s)
+
+  -- anom_wd_do3 (seed 0) {'hidden_size': 128, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 266.997 | val MSE(comp) 233.012
+    epoca  2/8 | treino MSE 229.221 | val MSE(comp) 229.309
+    epoca  3/8 | treino MSE 211.984 | val MSE(comp) 229.445
+    epoca  4/8 | treino MSE 199.921 | val MSE(comp) 231.503
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 79.6%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 87.7%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 74.0%); usando 15 componentes
+    epoca  5/8 | treino MSE 191.557 | val MSE(comp) 234.105
+    epoca  6/8 | treino MSE 184.449 | val MSE(comp) 233.171
+    epoca  7/8 | treino MSE 178.614 | val MSE(comp) 234.176
+    epoca  8/8 | treino MSE 173.729 | val MSE(comp) 238.467
+  RMSE grade (ultima epoca): direto 1.7517 | via componentes 1.7517
+  salvo em models/_cv/1989/anom_wd_do3_s0.npz (62s)
+
+  -- anom_h32 (seed 0) {'hidden_size': 32, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 287.226 | val MSE(comp) 251.010
+    epoca  2/8 | treino MSE 259.194 | val MSE(comp) 237.579
+    epoca  3/8 | treino MSE 245.036 | val MSE(comp) 235.123
+    epoca  4/8 | treino MSE 237.335 | val MSE(comp) 234.133
+    epoca  5/8 | treino MSE 232.465 | val MSE(comp) 234.594
+    epoca  6/8 | treino MSE 228.626 | val MSE(comp) 233.684
+    epoca  7/8 | treino MSE 225.909 | val MSE(comp) 232.101
+    epoca  8/8 | treino MSE 224.080 | val MSE(comp) 234.404
+  RMSE grade (ultima epoca): direto 1.7432 | via componentes 1.7432
+  salvo em models/_cv/1989/anom_h32_s0.npz (58s)
+
+  -- ridge_a100 (seed 0) {'ridge_alpha': 100}
+  RMSE grade (ultima epoca): direto 1.7898 | via componentes 1.7898
+  salvo em models/_cv/1989/ridge_a100_s0.npz (3s)
+
+  -- ridge_a1000 (seed 0) {'ridge_alpha': 1000}
+  RMSE grade (ultima epoca): direto 1.7639 | via componentes 1.7639
+  salvo em models/_cv/1989/ridge_a1000_s0.npz (4s)
+
+  -- ridge_a10000 (seed 0) {'ridge_alpha': 10000}
+  RMSE grade (ultima epoca): direto 1.7419 | via componentes 1.7419
+  salvo em models/_cv/1989/ridge_a10000_s0.npz (3s)
+
+######################################################################
+# Dobra 2009: 8 execucoes pendentes (base:0 anom:0 anom_wd:0 anom_wd_do3:0 anom_h32:0 ridge_a100:0 ridge_a1000:0 ridge_a10000:0)
+######################################################################
+=== Dobra 2009: treino 1940-2009, validacao 2010-2018 ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+    aviso: nao atingiu 90% de variancia mesmo com max_components=40 (alcancado: 85.3%); usando 40 componentes
+  PCA[tp] (referencia): 40 componentes explicam 85.3% da variancia (treino interno)
+/home/mazeeqe/.local/lib/python3.14/site-packages/sklearn/cross_decomposition/_pls.py:104: ConvergenceWarning: Maximum number of iterations reached
+  warnings.warn("Maximum number of iterations reached", ConvergenceWarning)
+  PLS_LAGGED[t2]: 4 componentes explicam 90.3% da variancia de X (treino interno)
+  PLS_LAGGED[cloud_cover]: 15 componentes explicam 79.2% da variancia de X (treino interno)
+  PLS_LAGGED[shum_850]: 15 componentes explicam 87.6% da variancia de X (treino interno)
+  PLS_LAGGED[surface_pressure]: 15 componentes explicam 81.5% da variancia de X (treino interno)
+  PLS_LAGGED[u_850]: 15 componentes explicam 73.9% da variancia de X (treino interno)
+  PLS_LAGGED[v_850]: 15 componentes explicam 74.7% da variancia de X (treino interno)
+  PLS_LAGGED[temperature_850]: 9 componentes explicam 90.8% da variancia de X (treino interno)
+  PLS_LAGGED[rel_hum_850]: 15 componentes explicam 75.6% da variancia de X (treino interno)
+  PLS_LAGGED[geopotential_850]: 15 componentes explicam 73.9% da variancia de X (treino interno)
+  treino: 19596 exemplos | validacao: 2292 exemplos | componentes tp: 40
+  meta salvo (piso de reconstrucao: RMSE 1.2406)
+
+  -- base (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': False}
+    epoca  1/8 | treino MSE 353.218 | val MSE(comp) 247.531
+    epoca  2/8 | treino MSE 233.551 | val MSE(comp) 243.777
+    epoca  3/8 | treino MSE 216.874 | val MSE(comp) 246.309
+    epoca  4/8 | treino MSE 205.867 | val MSE(comp) 248.484
+    epoca  5/8 | treino MSE 196.993 | val MSE(comp) 248.982
+    epoca  6/8 | treino MSE 190.075 | val MSE(comp) 252.222
+    epoca  7/8 | treino MSE 183.646 | val MSE(comp) 251.189
+    epoca  8/8 | treino MSE 177.775 | val MSE(comp) 256.718
+  RMSE grade (ultima epoca): direto 1.8542 | via componentes 1.8542
+  salvo em models/_cv/2009/base_s0.npz (163s)
+
+  -- anom (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': True}
+    epoca  1/8 | treino MSE 246.068 | val MSE(comp) 237.697
+    epoca  2/8 | treino MSE 207.981 | val MSE(comp) 238.778
+    epoca  3/8 | treino MSE 190.109 | val MSE(comp) 244.613
+    epoca  4/8 | treino MSE 177.605 | val MSE(comp) 247.312
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 81.5%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 74.7%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 75.6%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 73.9%); usando 15 componentes
+    epoca  5/8 | treino MSE 168.030 | val MSE(comp) 247.560
+    epoca  6/8 | treino MSE 160.319 | val MSE(comp) 251.592
+    epoca  7/8 | treino MSE 153.454 | val MSE(comp) 251.868
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 79.2%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 87.6%); usando 15 componentes
+    aviso: PLS nao atingiu 90% de variancia de X mesmo com max_components=15 (alcancado: 73.9%); usando 15 componentes
+    epoca  8/8 | treino MSE 147.805 | val MSE(comp) 258.888
+  RMSE grade (ultima epoca): direto 1.8585 | via componentes 1.8585
+  salvo em models/_cv/2009/anom_s0.npz (145s)
+
+  -- anom_wd (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 246.368 | val MSE(comp) 236.802
+    epoca  2/8 | treino MSE 209.291 | val MSE(comp) 236.735
+    epoca  3/8 | treino MSE 192.498 | val MSE(comp) 241.078
+    epoca  4/8 | treino MSE 181.137 | val MSE(comp) 242.682
+    epoca  5/8 | treino MSE 172.922 | val MSE(comp) 241.416
+    epoca  6/8 | treino MSE 166.567 | val MSE(comp) 243.816
+    epoca  7/8 | treino MSE 161.000 | val MSE(comp) 242.466
+    epoca  8/8 | treino MSE 156.605 | val MSE(comp) 247.368
+  RMSE grade (ultima epoca): direto 1.8355 | via componentes 1.8355
+  salvo em models/_cv/2009/anom_wd_s0.npz (116s)
+
+  -- anom_wd_do3 (seed 0) {'hidden_size': 128, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 253.683 | val MSE(comp) 236.787
+    epoca  2/8 | treino MSE 220.545 | val MSE(comp) 236.142
+    epoca  3/8 | treino MSE 206.968 | val MSE(comp) 237.615
+    epoca  4/8 | treino MSE 197.597 | val MSE(comp) 237.932
+    epoca  5/8 | treino MSE 190.761 | val MSE(comp) 237.415
+    epoca  6/8 | treino MSE 185.496 | val MSE(comp) 237.779
+    epoca  7/8 | treino MSE 180.951 | val MSE(comp) 236.960
+    epoca  8/8 | treino MSE 176.871 | val MSE(comp) 239.795
+  RMSE grade (ultima epoca): direto 1.8201 | via componentes 1.8201
+  salvo em models/_cv/2009/anom_wd_do3_s0.npz (144s)
+
+  -- anom_h32 (seed 0) {'hidden_size': 32, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 274.095 | val MSE(comp) 243.432
+    epoca  2/8 | treino MSE 248.175 | val MSE(comp) 236.777
+    epoca  3/8 | treino MSE 236.455 | val MSE(comp) 235.704
+    epoca  4/8 | treino MSE 230.564 | val MSE(comp) 235.989
+    epoca  5/8 | treino MSE 226.813 | val MSE(comp) 237.128
+    epoca  6/8 | treino MSE 224.756 | val MSE(comp) 235.579
+    epoca  7/8 | treino MSE 222.983 | val MSE(comp) 236.090
+    epoca  8/8 | treino MSE 221.551 | val MSE(comp) 236.913
+  RMSE grade (ultima epoca): direto 1.8143 | via componentes 1.8143
+  salvo em models/_cv/2009/anom_h32_s0.npz (69s)
+
+  -- ridge_a100 (seed 0) {'ridge_alpha': 100}
+  RMSE grade (ultima epoca): direto 1.8552 | via componentes 1.8552
+  salvo em models/_cv/2009/ridge_a100_s0.npz (4s)
+
+  -- ridge_a1000 (seed 0) {'ridge_alpha': 1000}
+  RMSE grade (ultima epoca): direto 1.8378 | via componentes 1.8378
+  salvo em models/_cv/2009/ridge_a1000_s0.npz (3s)
+
+  -- ridge_a10000 (seed 0) {'ridge_alpha': 10000}
+  RMSE grade (ultima epoca): direto 1.8187 | via componentes 1.8187
+  salvo em models/_cv/2009/ridge_a10000_s0.npz (3s)
+
+######################################################################
+# Dobra 2018: 8 execucoes pendentes (base:0 anom:0 anom_wd:0 anom_wd_do3:0 anom_h32:0 ridge_a100:0 ridge_a1000:0 ridge_a10000:0)
+######################################################################
+=== Dobra 2018: treino 1940-2018, validacao 2019-2022 ===
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+Carregado 'sample_submission' (csv): 1885464 linhas x 2 colunas
+Carregado 'teste_features' (netcdf): dims=(time=24, lat=301, lon=261), variáveis=['t2', 'cloud_cover', 'shum_850', 'surface_pressure', 'u_850', 'v_850', 'temperature_850', 'rel_hum_850', 'geopotential_850', 'tp_alvo', 'tp_ultima_obs']
+Carregado 'treino_cloud_cover' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['cloud_cover']
+Carregado 'treino_geopotential_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['geopotential_850']
+Carregado 'treino_rel_hum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['rel_hum_850']
+Carregado 'treino_shum_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['shum_850']
+Carregado 'treino_surface_pressure' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['surface_pressure']
+Carregado 'treino_t2' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['t2']
+Carregado 'treino_temperature_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['temperature_850']
+Carregado 'treino_tp' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp']
+Carregado 'treino_tp_alvo' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['tp_alvo']
+Carregado 'treino_u_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['u_850']
+Carregado 'treino_v_850' (netcdf): dims=(time=996, lat=301, lon=261), variáveis=['v_850']
+Dados ja baixados em cache, reaproveitando: /home/mazeeqe/.cache/kagglehub/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul
+  cache de reducao reaproveitado (models/_reduction_cache/pls_lagged_shift1.joblib, calculado em 2026-09-20T13:29:03.462986) - pulando o ajuste do PCA/PLS
+  treino: 22188 exemplos | validacao: 852 exemplos | componentes tp: 40
+  meta salvo (piso de reconstrucao: RMSE 1.2389)
+
+  -- base (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': False}
+    epoca  1/8 | treino MSE 341.036 | val MSE(comp) 258.845
+    epoca  2/8 | treino MSE 231.276 | val MSE(comp) 251.799
+    epoca  3/8 | treino MSE 215.583 | val MSE(comp) 248.442
+    epoca  4/8 | treino MSE 204.918 | val MSE(comp) 251.629
+    epoca  5/8 | treino MSE 197.007 | val MSE(comp) 256.073
+    epoca  6/8 | treino MSE 190.437 | val MSE(comp) 256.756
+    epoca  7/8 | treino MSE 183.904 | val MSE(comp) 257.317
+    epoca  8/8 | treino MSE 178.588 | val MSE(comp) 262.043
+  RMSE grade (ultima epoca): direto 1.8670 | via componentes 1.8670
+  salvo em models/_cv/2018/base_s0.npz (200s)
+
+  -- anom (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.0, 'anomaly': True}
+    epoca  1/8 | treino MSE 243.231 | val MSE(comp) 243.016
+    epoca  2/8 | treino MSE 207.376 | val MSE(comp) 239.226
+    epoca  3/8 | treino MSE 190.009 | val MSE(comp) 238.890
+    epoca  4/8 | treino MSE 178.061 | val MSE(comp) 243.354
+    epoca  5/8 | treino MSE 168.981 | val MSE(comp) 246.743
+    epoca  6/8 | treino MSE 161.459 | val MSE(comp) 247.667
+    epoca  7/8 | treino MSE 155.059 | val MSE(comp) 252.161
+    epoca  8/8 | treino MSE 149.999 | val MSE(comp) 255.536
+  RMSE grade (ultima epoca): direto 1.8540 | via componentes 1.8540
+  salvo em models/_cv/2018/anom_s0.npz (187s)
+
+  -- anom_wd (seed 0) {'hidden_size': 128, 'dropout': 0.1, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 243.499 | val MSE(comp) 242.426
+    epoca  2/8 | treino MSE 208.742 | val MSE(comp) 238.290
+    epoca  3/8 | treino MSE 192.564 | val MSE(comp) 236.629
+    epoca  4/8 | treino MSE 181.891 | val MSE(comp) 238.811
+    epoca  5/8 | treino MSE 174.150 | val MSE(comp) 242.049
+    epoca  6/8 | treino MSE 167.892 | val MSE(comp) 241.535
+    epoca  7/8 | treino MSE 162.814 | val MSE(comp) 243.249
+    epoca  8/8 | treino MSE 158.899 | val MSE(comp) 244.665
+  RMSE grade (ultima epoca): direto 1.8320 | via componentes 1.8320
+  salvo em models/_cv/2018/anom_wd_s0.npz (131s)
+
+  -- anom_wd_do3 (seed 0) {'hidden_size': 128, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 250.302 | val MSE(comp) 243.236
+    epoca  2/8 | treino MSE 219.379 | val MSE(comp) 240.180
+    epoca  3/8 | treino MSE 206.689 | val MSE(comp) 239.311
+    epoca  4/8 | treino MSE 197.729 | val MSE(comp) 240.115
+    epoca  5/8 | treino MSE 191.497 | val MSE(comp) 242.179
+    epoca  6/8 | treino MSE 186.559 | val MSE(comp) 241.601
+    epoca  7/8 | treino MSE 182.110 | val MSE(comp) 241.537
+    epoca  8/8 | treino MSE 178.418 | val MSE(comp) 244.586
+  RMSE grade (ultima epoca): direto 1.8319 | via componentes 1.8319
+  salvo em models/_cv/2018/anom_wd_do3_s0.npz (72s)
+
+  -- anom_h32 (seed 0) {'hidden_size': 32, 'dropout': 0.3, 'lr': 0.0005, 'weight_decay': 0.5, 'anomaly': True}
+    epoca  1/8 | treino MSE 269.584 | val MSE(comp) 257.652
+    epoca  2/8 | treino MSE 243.630 | val MSE(comp) 247.813
+    epoca  3/8 | treino MSE 234.083 | val MSE(comp) 246.092
+    epoca  4/8 | treino MSE 229.712 | val MSE(comp) 244.371
+    epoca  5/8 | treino MSE 226.089 | val MSE(comp) 243.793
+    epoca  6/8 | treino MSE 224.184 | val MSE(comp) 244.242
+    epoca  7/8 | treino MSE 222.395 | val MSE(comp) 245.156
+    epoca  8/8 | treino MSE 221.069 | val MSE(comp) 243.443
+  RMSE grade (ultima epoca): direto 1.8295 | via componentes 1.8295
+  salvo em models/_cv/2018/anom_h32_s0.npz (41s)
+
+  -- ridge_a100 (seed 0) {'ridge_alpha': 100}
+  RMSE grade (ultima epoca): direto 1.8649 | via componentes 1.8649
+  salvo em models/_cv/2018/ridge_a100_s0.npz (1s)
+
+  -- ridge_a1000 (seed 0) {'ridge_alpha': 1000}
+  RMSE grade (ultima epoca): direto 1.8525 | via componentes 1.8525
+  salvo em models/_cv/2018/ridge_a1000_s0.npz (1s)
+
+  -- ridge_a10000 (seed 0) {'ridge_alpha': 10000}
+  RMSE grade (ultima epoca): direto 1.8399 | via componentes 1.8399
+  salvo em models/_cv/2018/ridge_a10000_s0.npz (1s)
