@@ -7,7 +7,6 @@ Membros da equipe:
 - Tomáz Antonio Bortoletto Giansante
 - Beatriz Karoline Cordeiro da Silva
 - Daiane Fonseca
--
 
 Código para baixar e carregar os dados da competição Kaggle
 [previsao-climatica-de-precipitacao-sobre-a-america-do-sul](https://kaggle.com/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul).
