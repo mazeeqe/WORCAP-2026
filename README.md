@@ -11,6 +11,37 @@ Membros da equipe:
 Código para baixar e carregar os dados da competição Kaggle
 [previsao-climatica-de-precipitacao-sobre-a-america-do-sul](https://kaggle.com/competitions/previsao-climatica-de-precipitacao-sobre-a-america-do-sul).
 
+## Resultados finais
+
+**Modelo vencedor**: blend de 3 LSTMs hindcast/forecast em espaço de anomalia
+(`tp - climatologia do mês-alvo`) sobre uma redução PLS defasada (`pls_lagged`,
+supervisionada por `tp` em `t+1`), com pesos ajustados por mínimos quadrados numa
+CV walk-forward de 5 dobras (leave-one-fold-out). Um dos 3 membros do blend recebe
+também o índice ONI (El Niño/La Niña) como feature extra — 2023-2024 (o teste real)
+cobre um dos El Niños mais fortes do registro.
+
+| Métrica | Valor |
+|---|---|
+| RMSE-CV (leave-one-fold-out, 5 dobras) | **1.778** mm/dia |
+| RMSE da climatologia (baseline) | 1.828 mm/dia |
+| RMSE real no Kaggle | **1.73116** |
+
+Onde encontrar cada parte:
+- `notebooks/resultados_pca_lstm.ipynb` (seção 6) — leaderboard completo da CV
+  (17 configs testadas), composição do blend e visualizações da previsão real.
+- `notebooks/kaggle_modelo_vencedor.ipynb` — versão **autocontida** (sem depender
+  do resto do repositório), pronta pra subir como notebook no Kaggle; explica
+  também a varredura de hiperparâmetros que levou a essa configuração.
+- `scripts/cv_ensemble.py` — a CV walk-forward em si (`--report` gera o leaderboard).
+- `scripts/final_blend.py` — retreina o esquema vencedor com todo o histórico
+  (1940-2022) e gera a submissão real.
+
+Uma descoberta que vale registrar: o blend com o melhor RMSE-CV **não** é o trio
+das 3 configs com melhor score individual (essas, mais parecidas entre si, dão
+RMSE-CV 1.7809) — é um trio mais diverso (RMSE-CV 1.7781), que inclui a config com
+o índice ONI mesmo ela não estando entre as top-8 sozinha. Diversidade entre os
+modelos do blend importou mais que o score solo de cada um.
+
 ## Estrutura do repositório
 
 ### Documentação (`docs/`)
