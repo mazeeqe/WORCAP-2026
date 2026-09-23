@@ -10,8 +10,8 @@ A climatologia (em componentes) usa todos os meses de 1940-2022. Nao aplica a co
 pos-hoc (a CV dela mostrou que piora: ver models/pls_lagged_lstm_run1/enso_correction/report.json).
 
 Uso (a partir da raiz do repositorio), com os valores lidos do relatorio da CV:
-    python3 final_ensemble.py --config anom_wd --epochs 3 --seeds 0 1 2 3 4 --alphas 0.8
-    python3 final_ensemble.py --config anom_wd --epochs 3 --seeds 0 1 2 3 4 \
+    python3 -m scripts.final_ensemble --config anom_wd --epochs 3 --seeds 0 1 2 3 4 --alphas 0.8
+    python3 -m scripts.final_ensemble --config anom_wd --epochs 3 --seeds 0 1 2 3 4 \
         --ridge-config ridge_a1000 --alphas 0.7 0.2
 """
 
@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from cv_ensemble import CONFIGS, N_JOBS_REDUCTION_CV, _fit_ridge, _train_lstm
-from download_data import download_competition_data
+from scripts.cv_ensemble import CONFIGS, N_JOBS_REDUCTION_CV, _fit_ridge, _train_lstm
+from scripts.download_data import download_competition_data
 from src.data import (
     ALL_VARS,
     FEATURE_VARS,

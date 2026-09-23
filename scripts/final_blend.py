@@ -14,8 +14,8 @@ correcao ENSO pos-hoc (a CV dela mostrou que piora: ver
 models/pls_lagged_lstm_run1/enso_correction/report.json).
 
 Uso (a partir da raiz do repositorio):
-    python3 final_blend.py
-    python3 final_blend.py --report models/_cv/report.json --tag meu_blend
+    python3 -m scripts.final_blend
+    python3 -m scripts.final_blend --report models/_cv/report.json --tag meu_blend
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from cv_ensemble import CONFIGS, N_JOBS_REDUCTION_CV, _fit_ridge, _train_lstm
-from download_data import download_competition_data
+from scripts.cv_ensemble import CONFIGS, N_JOBS_REDUCTION_CV, _fit_ridge, _train_lstm
+from scripts.download_data import download_competition_data
 from src.data import (
     ALL_VARS,
     FEATURE_VARS,
@@ -50,7 +50,7 @@ from src.submit import build_submission
 def _melhor_combo(relatorio: dict) -> tuple[str, list[str], list[float]]:
     chaves = {k: v for k, v in relatorio.items() if k.startswith("encolhimento_")}
     if not chaves:
-        raise ValueError("relatorio sem nenhuma chave 'encolhimento_*' - rode cv_ensemble.py --report primeiro")
+        raise ValueError("relatorio sem nenhuma chave 'encolhimento_*' - rode 'python3 -m scripts.cv_ensemble --report' primeiro")
     melhor_chave = min(chaves, key=lambda k: chaves[k]["rmse_lofo"])
     tokens = melhor_chave[len("encolhimento_"):].split("+")
     return melhor_chave, tokens, chaves[melhor_chave]["alfa"]

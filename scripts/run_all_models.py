@@ -1,10 +1,10 @@
 """Treina todos os modelos disponiveis (e suas variacoes), em sequencia.
 
 Uso (a partir da raiz do repositorio):
-    python3 run_all_models.py                                        # todos os modelos/variacoes
-    python3 run_all_models.py --models pca_lstm                      # so um modelo (todas as variacoes dele)
-    python3 run_all_models.py --variations pca pls_concurrent        # so essas variacoes (de qualquer modelo que as tenha)
-    python3 run_all_models.py --variations pls_lagged --pls-lag-shift 2
+    python3 -m scripts.run_all_models                                        # todos os modelos/variacoes
+    python3 -m scripts.run_all_models --models pca_lstm                      # so um modelo (todas as variacoes dele)
+    python3 -m scripts.run_all_models --variations pca pls_concurrent        # so essas variacoes (de qualquer modelo que as tenha)
+    python3 -m scripts.run_all_models --variations pls_lagged --pls-lag-shift 2
 
 Cada variacao roda o modulo de treino daquele modelo (`python3 -m <MODEL_RUNNERS[modelo].module>
 --reduction <variacao>`) num processo separado (memoria isolada entre rodadas) e ja

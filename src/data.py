@@ -30,7 +30,7 @@ from __future__ import annotations
 import numpy as np
 import xarray as xr
 
-from download_data import download_competition_data, load_dataset_files
+from scripts.download_data import download_competition_data, load_dataset_files
 
 FEATURE_VARS = [
     "t2",

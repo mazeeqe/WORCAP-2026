@@ -23,10 +23,10 @@ onde MSE_piso e o erro de reconstruir o proprio tp verdadeiro a partir dos compo
 identidade contra a reconstrucao direta da grade para cada modelo treinado.
 
 Uso (a partir da raiz do repositorio):
-    python3 cv_ensemble.py --configs base anom anom_wd --seeds 0          # roda o que falta
-    python3 cv_ensemble.py --configs anom_wd --seeds 1 2 3 4               # so mais seeds
-    python3 cv_ensemble.py --report                                        # tabelas + JSON
-    python3 cv_ensemble.py --fold 1969 --specs base:0 anom:0               # uso interno
+    python3 -m scripts.cv_ensemble --configs base anom anom_wd --seeds 0   # roda o que falta
+    python3 -m scripts.cv_ensemble --configs anom_wd --seeds 1 2 3 4       # so mais seeds
+    python3 -m scripts.cv_ensemble --report                                # tabelas + JSON
+    python3 -m scripts.cv_ensemble --fold 1969 --specs base:0 anom:0       # uso interno
 """
 
 from __future__ import annotations
@@ -361,7 +361,8 @@ def orchestrate(cv_dir: str, configs: list[str], seeds: list[int], folds: list[s
             continue
         print(f"\n{'#' * 70}\n# Dobra {nome}: {len(specs)} execucoes pendentes ({' '.join(specs)})\n{'#' * 70}", flush=True)
         r = subprocess.run(
-            [sys.executable, __file__, "--cv-dir", cv_dir, "--epochs", str(epochs), "--fold", nome, "--specs", *specs]
+            [sys.executable, "-m", "scripts.cv_ensemble", "--cv-dir", cv_dir, "--epochs", str(epochs),
+             "--fold", nome, "--specs", *specs]
         )
         if r.returncode != 0:
             print(f"AVISO: dobra {nome} falhou (returncode={r.returncode}); rode de novo para retomar.", flush=True)
